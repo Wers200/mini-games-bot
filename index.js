@@ -980,7 +980,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       }
       break;
     case 'invite-link':
-      Discord_SendInteractionAnswer(interaction, `The invite link: https://discord.com/api/oauth2/authorize?client_id=841733014513385473&permissions=371776&scope=bot%20applications.commands`, [], 64);
+      Discord_SendInteractionAnswer(interaction, `The invite link: https://discord.com/api/oauth2/authorize?client_id=841733014513385473&permissions=330816&scope=bot%20applications.commands`, [], 64);
       break;
   }
 });
@@ -988,7 +988,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
 client.on('ready', function() {
   // Set client special presence
   client.user.setStatus('dnd');
-  client.user.setActivity('Tic-Tac-Toe', { type: 'STREAMING', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' })
+  client.user.setActivity('Tic-Tac-Toe', { type: 'WATCHING', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' })
   // Add slash commands to joined servers
   for(let i = 0; i < client.guilds.cache.size; i++) {
     // Add tic-tac-toe slash command
