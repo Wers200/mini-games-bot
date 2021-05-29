@@ -30,7 +30,12 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const { Client } = require('pg');
 const psql_client = new Client({
-  connectionString: process.env.DATABASE_URL
+  host: process.env.DATABASE_HOST,
+  database: process.env.DATABASE_NAME,
+  user: process.env.DATABASE_USERNAME,
+  password: process.env.DATABASE_PASSWORD,
+  port: process.env.DATABASE_PORT,
+  ssl: true
 })
 
 //#region Helper classes
