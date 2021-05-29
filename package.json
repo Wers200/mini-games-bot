@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/Wers200/mini-games-bot#readme",
   "dependencies": {
-    "discord.js": "^12.5.3"
+    "discord.js": "^12.5.3",
+    "pg": "^8.6.0"
   }
 }

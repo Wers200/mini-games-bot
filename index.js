@@ -28,6 +28,13 @@ Object.defineProperty(Array.prototype, 'findIndexes', {
 // Global Variables
 const Discord = require('discord.js');
 const client = new Discord.Client();
+const {Pool} = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+})
 
 //#region Helper classes
 
@@ -769,8 +776,12 @@ class XO {
     if(Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
-    || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) 
+    || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
+      pool.query(`UPDATE Statistics
+      SET ValueInt = ValueInt + 1
+      WHERE Name = 'XO_GamesPlayed'`);
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
+    }
     else if(gameTableFilled) // If no win combinations, but the game table is filled, it is a draw
       return XO_GameState_Draw;
     else return XO_GameState_Playing;
@@ -823,6 +834,10 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
   // Variables
   const command = interaction.data.name.toLowerCase();
   const args = interaction.data.options;
+  const statistics = []; // The database's (for the bot) values in Statistics table
+  pool.query('SELECT * FROM Statistics', (error, result) => {
+    if(!error) statistics = result.rows; 
+  });
   // DM Check
   if(interaction.user != undefined) { Discord_SendInteractionAnswer(interaction, 'You can\'t use commands in DM!'); return; }
   let channel = client.channels.cache.get(interaction.channel_id); // Getting current text channel
@@ -968,11 +983,12 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
+          const XO_GamesPlayed = statistics.find(stat => stat.Name == 'XO_GamesPlayed').ValueInt;
           Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
             .setAuthor('Tic-Tac-Toe: Statistics', client.user.displayAvatarURL())
             .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
-              { name: 'Game Statistics', value: `Games played: ?\nUsers playing: ${XO_InGame.length}`, inline: true }, 
+              { name: 'Game Statistics', value: `Games played: ${XO_GamesPlayed}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
               { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
             .setTimestamp()
             .setFooter(guild.name, guild.iconURL())], 64);
