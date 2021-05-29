@@ -28,13 +28,9 @@ Object.defineProperty(Array.prototype, 'findIndexes', {
 // Global Variables
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const {Pool} = require('pg');
-const pool = new Pool({
-  user: process.env.DATABASE_USERNAME,
-  host: process.env.DATABASE_HOST,
-  database: process.env.DATABASE_NAME,
-  password: process.env.DATABASE_PASSWORD,
-  port: process.env.DATABASE_PORT
+const { Client } = require('pg');
+const psql_client = new Client({
+  connectionString: process.env.DATABASE_URL
 })
 
 //#region Helper classes
@@ -778,13 +774,17 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
-      pool.query(`UPDATE Statistics
-      SET ValueInt = ValueInt + 1
-      WHERE Name = 'XO_GamesPlayed';`);
+      psql_client.connect();
+      psql_client.query(`UPDATE Statistics
+      SET XO_GamesPlayed = XO_GamesPlayed + 1;`).then(result => psql_client.end());
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
-    else if(gameTableFilled) // If no win combinations, but the game table is filled, it is a draw
+    else if(gameTableFilled) { // If no win combinations, but the game table is filled, it is a draw
+      psql_client.connect();
+      psql_client.query(`UPDATE Statistics
+      SET XO_GamesPlayed = XO_GamesPlayed + 1;`).then(result => psql_client.end());
       return XO_GameState_Draw;
+    }
     else return XO_GameState_Playing;
   }
 }
@@ -835,156 +835,153 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
   // Variables
   const command = interaction.data.name.toLowerCase();
   const args = interaction.data.options;
-  let statistics = []; // The database's (for the bot) values in Statistics table
-  pool.query('SELECT * FROM Statistics;', (error, result) => {
-    if(!error) statistics = result.rows; 
-    // Do stuff only when loaded DB values
-    let channel = client.channels.cache.get(interaction.channel_id); // Getting current text channel
-    let guild = client.guilds.cache.get(interaction.guild_id); // Getting current guild
-    switch(command) {
-      case 'tic-tac-toe':
-        if(args[0].name == 'with-a-bot') {
-          // Doing a basic check...
-          if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
-          else { // If everything is ok, start the game!
-            Discord_SendInteractionAnswer(interaction, 'Starting the game...');
-            // Function argument variables
-            let difficulty = args[0].options[0].value;
-            let playerSign = args[0].options[1].value;
-            // If side size is not entered, just make basic 3x3 game
-            const tableSide = args[0].options[2] != undefined ? args[0].options[2].value : 3;
-            // Start the game!
-            XO.HumanVSBot(interaction.member, difficulty, channel, tableSide, playerSign)
-          }
+  let channel = client.channels.cache.get(interaction.channel_id); // Getting current text channel
+  let guild = client.guilds.cache.get(interaction.guild_id); // Getting current guild
+  switch(command) {
+    case 'tic-tac-toe':
+      if(args[0].name == 'with-a-bot') {
+        // Doing a basic check...
+        if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
+        else { // If everything is ok, start the game!
+          Discord_SendInteractionAnswer(interaction, 'Starting the game...');
+          // Function argument variables
+          let difficulty = args[0].options[0].value;
+          let playerSign = args[0].options[1].value;
+          // If side size is not entered, just make basic 3x3 game
+          const tableSide = args[0].options[2] != undefined ? args[0].options[2].value : 3;
+          // Start the game!
+          XO.HumanVSBot(interaction.member, difficulty, channel, tableSide, playerSign)
         }
-        else {
-          let member = guild.members.cache.get(args[0].options[0].value); // Getting Player 2 object
-          // Doing VARIOUS checks
-          if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
-          else if(member.user.bot) Discord_SendInteractionAnswer(interaction, 'You can\'t play with a bot!');
-          else if(args[0].options[0].value == interaction.member.user.id) Discord_SendInteractionAnswer(interaction, 'You can\'t play with yourself!');
-          else if(XO_InGame.includes(member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t play with a person in-game!');
-          else if(!member.permissionsIn(channel).has([Discord.Permissions.FLAGS.SEND_MESSAGES, Discord.Permissions.FLAGS.VIEW_CHANNEL, Discord.Permissions.FLAGS.READ_MESSAGE_HISTORY])) 
-            Discord_SendInteractionAnswer(interaction, 'This user can\'t play in this channel!');
-          else { // If all checks were passed, then send request to Player 2
-            member.user.send('Do you want to play Tic-Tac-Toe with <@!' + interaction.member.user.id + '>?\nReact to this message with :white_check_mark: if yes, and with :x: if no.')
-            .then(message => {
-              Discord_SendInteractionAnswer(interaction, 'Waiting for the request answer...');
-              // React on request message, so user can choose
-              message.react('✅');
-              message.react('❌');
-              // Making filters&collectors for reactions
-              const filterYes = (reaction, user) => reaction.emoji.name === '✅' && user.id === member.user.id;
-              const filterNo = (reaction, user) => reaction.emoji.name === '❌' && user.id === member.user.id;
-              const collectorYes = message.createReactionCollector(filterYes);
-              const collectorNo = message.createReactionCollector(filterNo);
-              // Waiting for reaction...
-              collectorYes.on('collect', reaction => {
-                // If user reacted with checkmark, delete request stuff and start the game
-                message.delete();
-                clearTimeout(timeout);
-                // Function argument variables
-                const playerX = args[0].options[1].value == XO_CurrentTurn_X ? interaction.member : member;
-                const playerO = args[0].options[1].value == XO_CurrentTurn_X ? member : interaction.member;
-                // If side size is not entered, just make basic 3x3 game
-                const tableSide = args[0].options[2] != undefined ? args[0].options[2].value : 3;
-                // Start the game!
-                XO.HumanVSHuman(playerX, playerO, member, channel, tableSide);
-              });
-              collectorNo.on('collect', reaction => {
-                // If user reacted with crossmark, just delete request stuff
-                message.delete();
-                clearTimeout(timeout);
-                channel.send(member.user.username + '#' + member.user.discriminator + ' rejected your play request.');
-              });
-              // And if user was thinking for over a minute (time-out)
-              let timeout = setTimeout(function() {
-                if(!message.deleted) message.delete();
-                channel.send('Time out! Deleted your play request.');
-                clearTimeout(timeout);
-              }, 60000);            
-            })
-            .catch(error => { if(error.code == 50007) { Discord_SendInteractionAnswer(interaction, 'Can\'t send request to the user!'); } }); // If bot can't DM Player 2
-          }
+      }
+      else {
+        let member = guild.members.cache.get(args[0].options[0].value); // Getting Player 2 object
+        // Doing VARIOUS checks
+        if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
+        else if(member.user.bot) Discord_SendInteractionAnswer(interaction, 'You can\'t play with a bot!');
+        else if(args[0].options[0].value == interaction.member.user.id) Discord_SendInteractionAnswer(interaction, 'You can\'t play with yourself!');
+        else if(XO_InGame.includes(member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t play with a person in-game!');
+        else if(!member.permissionsIn(channel).has([Discord.Permissions.FLAGS.SEND_MESSAGES, Discord.Permissions.FLAGS.VIEW_CHANNEL, Discord.Permissions.FLAGS.READ_MESSAGE_HISTORY])) 
+          Discord_SendInteractionAnswer(interaction, 'This user can\'t play in this channel!');
+        else { // If all checks were passed, then send request to Player 2
+          member.user.send('Do you want to play Tic-Tac-Toe with <@!' + interaction.member.user.id + '>?\nReact to this message with :white_check_mark: if yes, and with :x: if no.')
+          .then(message => {
+            Discord_SendInteractionAnswer(interaction, 'Waiting for the request answer...');
+            // React on request message, so user can choose
+            message.react('✅');
+            message.react('❌');
+            // Making filters&collectors for reactions
+            const filterYes = (reaction, user) => reaction.emoji.name === '✅' && user.id === member.user.id;
+            const filterNo = (reaction, user) => reaction.emoji.name === '❌' && user.id === member.user.id;
+            const collectorYes = message.createReactionCollector(filterYes);
+            const collectorNo = message.createReactionCollector(filterNo);
+            // Waiting for reaction...
+            collectorYes.on('collect', reaction => {
+              // If user reacted with checkmark, delete request stuff and start the game
+              message.delete();
+              clearTimeout(timeout);
+              // Function argument variables
+              const playerX = args[0].options[1].value == XO_CurrentTurn_X ? interaction.member : member;
+              const playerO = args[0].options[1].value == XO_CurrentTurn_X ? member : interaction.member;
+              // If side size is not entered, just make basic 3x3 game
+              const tableSide = args[0].options[2] != undefined ? args[0].options[2].value : 3;
+              // Start the game!
+              XO.HumanVSHuman(playerX, playerO, member, channel, tableSide);
+            });
+            collectorNo.on('collect', reaction => {
+              // If user reacted with crossmark, just delete request stuff
+              message.delete();
+              clearTimeout(timeout);
+              channel.send(member.user.username + '#' + member.user.discriminator + ' rejected your play request.');
+            });
+            // And if user was thinking for over a minute (time-out)
+            let timeout = setTimeout(function() {
+              if(!message.deleted) message.delete();
+              channel.send('Time out! Deleted your play request.');
+              clearTimeout(timeout);
+            }, 60000);            
+          })
+          .catch(error => { if(error.code == 50007) { Discord_SendInteractionAnswer(interaction, 'Can\'t send request to the user!'); } }); // If bot can't DM Player 2
         }
-        break;
-      case 'bot-help':
-        let ticTacToeImageLink = 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.clipartkey.com%2Fmpngs%2Fm%2F110-1100210_tic-tac-toe-png.png&f=1&nofb=1';
-        switch(args[0].value) {
-          case HelpType_HowToStartTheGame:
-            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-              .setColor('#fff50f')
-              .setAuthor('Tic-Tac-Toe: How to start the game', ticTacToeImageLink)
-              .addFields({ name: 'You want to play with a human', value: 
-                `1\\*. Type \`/tic-tac-toe with-a-human\` (or just select this command from the slash commands list).
-                2\\*\\*. In the \`opponent\` field put your friend with which you want to play.
-                3. In the \`starting-player\` select who will make the first move/play as X.
-                4 (Optional). In the \`table-size\` field put the size (from 3 to 7) of a game table side.
-                5. Run the command and wait until \`Waiting for the request answer...\` message appears.
-                6\\*\\*\\*. After that your friend should get a message from the bot. Then friend should accept the request.
-                7. After accepting the friend will get the link to the game message and now the game is started!
-                
-                \\*You can't play if you are playing Tic-Tac-Toe already.
-                \\*\\*You can't play with certain users (more info sent after command run)
-                \\*\\*\\*The friend can also reject the request, or just not notice it (after 1 minute request disappears).` }, 
-                { name: 'You want to play with a bot', value: 
-                `1. Type \`/tic-tac-toe with-a-bot\` (or just select this command from the slash commands list).
-                2. In the \`difficulty\` field put the bot's difficulty (from Easy to Hard).
-                3. In the \`starting-player\` select who will make the first move/play as X.
-                4 (Optional). In the \`table-size\` field put the size (from 3 to 7) of a game table side.
-                5. Run the command and wait until \`Starting the game...\` message appears.
-                6. After that the game is started!` }, )
-              .setTimestamp()
-              .setFooter(guild.name, guild.iconURL())], 64);
-            break;
-          case HelpType_HowToPlayTheGame:
-            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-              .setColor('#fff50f')
-              .setAuthor('Tic-Tac-Toe: How to play the game', ticTacToeImageLink)
-              .setDescription(`After the game starts several reactions (:arrow_left:\\*, :arrow_right:\\*, :arrow_up:\\*, :arrow_down:\\*, :white_check_mark:*, :octagonal_sign:) will appear under the game message.
-              You will use them as the game controls. To use one, just click on the reaction.
+      }
+      break;
+    case 'bot-help':
+      let ticTacToeImageLink = 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.clipartkey.com%2Fmpngs%2Fm%2F110-1100210_tic-tac-toe-png.png&f=1&nofb=1';
+      switch(args[0].value) {
+        case HelpType_HowToStartTheGame:
+          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+            .setColor('#fff50f')
+            .setAuthor('Tic-Tac-Toe: How to start the game', ticTacToeImageLink)
+            .addFields({ name: 'You want to play with a human', value: 
+              `1\\*. Type \`/tic-tac-toe with-a-human\` (or just select this command from the slash commands list).
+              2\\*\\*. In the \`opponent\` field put your friend with which you want to play.
+              3. In the \`starting-player\` select who will make the first move/play as X.
+              4 (Optional). In the \`table-size\` field put the size (from 3 to 7) of a game table side.
+              5. Run the command and wait until \`Waiting for the request answer...\` message appears.
+              6\\*\\*\\*. After that your friend should get a message from the bot. Then friend should accept the request.
+              7. After accepting the friend will get the link to the game message and now the game is started!
               
-              \\*You can use this reaction only when it is your turn (if you play with a human).`)
-              .addFields({ name: 'Selecting cell', value: `You will need to select a cell where you will place your sign before doing a move.
-              On the game board, you will see selected cell (with a green border instead of black one).
-              To move the selection, you will need to use :arrow_left:, :arrow_right:, :arrow_up: and :arrow_down: reactions.` }, 
-                { name: 'Doing a move', value: 'After selecting a cell, you just need to press :white_check_mark: reaction to make a move.' }, 
-                { name: 'Stopping the game', value: 'To stop the game you just need to press :octagonal_sign: reaction.' },
-                { name: 'Getting game info', value: `From the game message you can get game info (Game State, Players, Game Table).
-                On the first line after the title the players will be displayed (Player X VS Player O).
-                Then, on the second line you will see the game state (Current Turn\\*/Game Result)
-                Lastly, you will see the game table, with which you can understand what to do.
-                
-                \\*It will display only if you play with a human.` })
-              .setTimestamp()
-              .setFooter(guild.name, guild.iconURL())], 64);
-            break;
-          case HelpType_BotDifficultyExplanation:
-            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-              .setColor('#fff50f')
-              .setAuthor('Tic-Tac-Toe: Bot Difficulty Explanation', ticTacToeImageLink)
-              .addFields({ name: 'Bot difficulty - Easy', value: 'In this difficulty bot always just picks a random move.' }, 
-                { name: 'Bot difficulty - Normal', value: `In this difficulty bot checks if it can win in one move, and wins if yes.
-                Else the bot checks if the opponent can win in one move, and blocks the win if yes.
-                And if none of above has been triggered, bot just picks a random move.` }, 
-                { name: 'Bot difficulty - Hard', value: `In this difficulty bot checks if it can win in one move, and wins if yes.
-                Else the bot checks if the opponent can win in one move, and blocks the win if yes.
-                Otherwise the bot looks for the moves, that will make help it build a win line, and builds the fastest-to-build line.
-                And if none of above has been triggered, bot just picks a random move.` })
-              .setTimestamp()
-              .setFooter(guild.name, guild.iconURL())], 64);
-            break;
-          case HelpType_WhoMadeTheBotAndHow:
-            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-              .setColor('#fff50f')
-              .setAuthor('Tic-Tac-Toe: Developers', ticTacToeImageLink)
-              .setDescription('This  bot is made by **DV Game** using discord.js v12.5.3.\nThanks to **homvp** for several algorithm ideas and some code.')
-              .setTimestamp()
-              .setFooter(guild.name, guild.iconURL())], 64);
-            break;
-          case HelpType_BotStatistics:
-            const XO_GamesPlayed = statistics.find(stat => stat.Name == 'XO_GamesPlayed').ValueInt;
-            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+              \\*You can't play if you are playing Tic-Tac-Toe already.
+              \\*\\*You can't play with certain users (more info sent after command run)
+              \\*\\*\\*The friend can also reject the request, or just not notice it (after 1 minute request disappears).` }, 
+              { name: 'You want to play with a bot', value: 
+              `1. Type \`/tic-tac-toe with-a-bot\` (or just select this command from the slash commands list).
+              2. In the \`difficulty\` field put the bot's difficulty (from Easy to Hard).
+              3. In the \`starting-player\` select who will make the first move/play as X.
+              4 (Optional). In the \`table-size\` field put the size (from 3 to 7) of a game table side.
+              5. Run the command and wait until \`Starting the game...\` message appears.
+              6. After that the game is started!` }, )
+            .setTimestamp()
+            .setFooter(guild.name, guild.iconURL())], 64);
+          break;
+        case HelpType_HowToPlayTheGame:
+          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+            .setColor('#fff50f')
+            .setAuthor('Tic-Tac-Toe: How to play the game', ticTacToeImageLink)
+            .setDescription(`After the game starts several reactions (:arrow_left:\\*, :arrow_right:\\*, :arrow_up:\\*, :arrow_down:\\*, :white_check_mark:*, :octagonal_sign:) will appear under the game message.
+            You will use them as the game controls. To use one, just click on the reaction.
+            
+            \\*You can use this reaction only when it is your turn (if you play with a human).`)
+            .addFields({ name: 'Selecting cell', value: `You will need to select a cell where you will place your sign before doing a move.
+            On the game board, you will see selected cell (with a green border instead of black one).
+            To move the selection, you will need to use :arrow_left:, :arrow_right:, :arrow_up: and :arrow_down: reactions.` }, 
+              { name: 'Doing a move', value: 'After selecting a cell, you just need to press :white_check_mark: reaction to make a move.' }, 
+              { name: 'Stopping the game', value: 'To stop the game you just need to press :octagonal_sign: reaction.' },
+              { name: 'Getting game info', value: `From the game message you can get game info (Game State, Players, Game Table).
+              On the first line after the title the players will be displayed (Player X VS Player O).
+              Then, on the second line you will see the game state (Current Turn\\*/Game Result)
+              Lastly, you will see the game table, with which you can understand what to do.
+              
+              \\*It will display only if you play with a human.` })
+            .setTimestamp()
+            .setFooter(guild.name, guild.iconURL())], 64);
+          break;
+        case HelpType_BotDifficultyExplanation:
+          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+            .setColor('#fff50f')
+            .setAuthor('Tic-Tac-Toe: Bot Difficulty Explanation', ticTacToeImageLink)
+            .addFields({ name: 'Bot difficulty - Easy', value: 'In this difficulty bot always just picks a random move.' }, 
+              { name: 'Bot difficulty - Normal', value: `In this difficulty bot checks if it can win in one move, and wins if yes.
+              Else the bot checks if the opponent can win in one move, and blocks the win if yes.
+              And if none of above has been triggered, bot just picks a random move.` }, 
+              { name: 'Bot difficulty - Hard', value: `In this difficulty bot checks if it can win in one move, and wins if yes.
+              Else the bot checks if the opponent can win in one move, and blocks the win if yes.
+              Otherwise the bot looks for the moves, that will make help it build a win line, and builds the fastest-to-build line.
+              And if none of above has been triggered, bot just picks a random move.` })
+            .setTimestamp()
+            .setFooter(guild.name, guild.iconURL())], 64);
+          break;
+        case HelpType_WhoMadeTheBotAndHow:
+          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+            .setColor('#fff50f')
+            .setAuthor('Tic-Tac-Toe: Developers', ticTacToeImageLink)
+            .setDescription('This  bot is made by **DV Game** using discord.js v12.5.3.\nThanks to **homvp** for several algorithm ideas and some code.')
+            .setTimestamp()
+            .setFooter(guild.name, guild.iconURL())], 64);
+          break;
+        case HelpType_BotStatistics:
+          psql_client.query('SELECT XO_GamesPlayed FROM Statistics')
+            .then(XO_GamesPlayed => {
+              Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
               .setColor('#fff50f')
               .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
               .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
@@ -992,14 +989,14 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
                 { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
               .setTimestamp()
               .setFooter(guild.name, guild.iconURL())], 64);
-            break;
-        }
-        break;
-      case 'invite-link':
-        Discord_SendInteractionAnswer(interaction, `The invite link (developer): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
-        break;
-    }
-  });
+            });
+          break;
+      }
+      break;
+    case 'invite-link':
+      Discord_SendInteractionAnswer(interaction, `The invite link (developer): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
+      break;
+  }
 });
 
 client.on('ready', function() {
