@@ -30,11 +30,7 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 const { Client } = require('pg');
 const psql_client = new Client({
-  host: process.env.DATABASE_HOST,
-  database: process.env.DATABASE_NAME,
-  user: process.env.DATABASE_USERNAME,
-  password: process.env.DATABASE_PASSWORD,
-  port: process.env.DATABASE_PORT,
+  connectionString: process.env.DATABASE_URL,
   ssl: true
 })
 
