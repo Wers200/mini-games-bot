@@ -979,10 +979,8 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-          console.log("Here.");
           psql_client.query('SELECT XO_GamesPlayed FROM Statistics;')
             .then(XO_GamesPlayed => {
-              console.log(XO_GamesPlayed);
               Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
               .setColor('#fff50f')
               .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
