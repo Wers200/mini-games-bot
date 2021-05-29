@@ -774,15 +774,14 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
-      psql_client.connect();
       psql_client.query(`UPDATE statistics
-      SET xo_gamesplayed = xo_gamesplayed + 1;`).then(result => psql_client.end());
+      SET xo_gamesplayed = xo_gamesplayed + 1;`);
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
     else if(gameTableFilled) { // If no win combinations, but the game table is filled, it is a draw
       psql_client.connect();
       psql_client.query(`UPDATE statistics
-      SET xo_gamesplayed = xo_gamesplayed + 1;`).then(result => psql_client.end());
+      SET xo_gamesplayed = xo_gamesplayed + 1;`);
       return XO_GameState_Draw;
     }
     else return XO_GameState_Playing;
@@ -979,10 +978,8 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-          psql_client.connect();
           psql_client.query('SELECT xo_gamesplayed FROM statistics;')
             .then(XO_GamesPlayed => {
-              psql_client.end();
               Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
               .setColor('#fff50f')
               .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
@@ -1005,6 +1002,8 @@ client.on('ready', function() {
   // Set client special presence
   client.user.setStatus('idle');
   client.user.setActivity('Tic-Tac-Toe 2: Electric Boogaloo', { type: 'PLAYING' })
+  // Connect to the database
+  psql_client.connect();
   // Add slash commands to joined servers
   for(let i = 0; i < client.guilds.cache.size; i++) {
     // Add tic-tac-toe slash command
