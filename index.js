@@ -779,7 +779,7 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
       pool.query(`UPDATE Statistics
       SET ValueInt = ValueInt + 1
-      WHERE Name = 'XO_GamesPlayed'`);
+      WHERE Name = 'XO_GamesPlayed';`);
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
     else if(gameTableFilled) // If no win combinations, but the game table is filled, it is a draw
@@ -835,7 +835,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
   const command = interaction.data.name.toLowerCase();
   const args = interaction.data.options;
   const statistics = []; // The database's (for the bot) values in Statistics table
-  pool.query('SELECT * FROM Statistics', (error, result) => {
+  pool.query('SELECT * FROM Statistics;', (error, result) => {
     if(!error) statistics = result.rows; 
   });
   // DM Check
