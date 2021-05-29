@@ -35,7 +35,6 @@ const psql_client = new Client({
   user: process.env.DATABASE_USERNAME,
   password: process.env.DATABASE_PASSWORD,
   port: process.env.DATABASE_PORT,
-  ssl: true
 })
 
 //#region Helper classes
