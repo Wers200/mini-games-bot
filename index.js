@@ -980,7 +980,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       }
       break;
     case 'invite-link':
-      Discord_SendInteractionAnswer(interaction, `The invite link: https://discord.com/api/oauth2/authorize?client_id=841733014513385473&permissions=330816&scope=bot%20applications.commands`, [], 64);
+      Discord_SendInteractionAnswer(interaction, `The invite link (developer): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
       break;
   }
 });
