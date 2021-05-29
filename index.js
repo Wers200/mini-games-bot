@@ -987,7 +987,8 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
 
 client.on('ready', function() {
   // Set client special presence
-  client.user.setStatus('dnd');
+  client.user.setStatus('idle');
+  
   // Add slash commands to joined servers
   for(let i = 0; i < client.guilds.cache.size; i++) {
     // Add tic-tac-toe slash command
