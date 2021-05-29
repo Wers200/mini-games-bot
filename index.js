@@ -834,7 +834,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
   // Variables
   const command = interaction.data.name.toLowerCase();
   const args = interaction.data.options;
-  const statistics = []; // The database's (for the bot) values in Statistics table
+  let statistics = []; // The database's (for the bot) values in Statistics table
   pool.query('SELECT * FROM Statistics;', (error, result) => {
     if(!error) statistics = result.rows; 
   });
@@ -910,11 +910,12 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       }
       break;
     case 'bot-help':
+      let ticTacToeImageLink = 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.clipartkey.com%2Fmpngs%2Fm%2F110-1100210_tic-tac-toe-png.png&f=1&nofb=1';
       switch(args[0].value) {
         case HelpType_HowToStartTheGame:
           Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
-            .setAuthor('Tic-Tac-Toe: How to start the game', client.user.displayAvatarURL())
+            .setAuthor('Tic-Tac-Toe: How to start the game', ticTacToeImageLink)
             .addFields({ name: 'You want to play with a human', value: 
               `1\\*. Type \`/tic-tac-toe with-a-human\` (or just select this command from the slash commands list).
               2\\*\\*. In the \`opponent\` field put your friend with which you want to play.
@@ -940,7 +941,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
         case HelpType_HowToPlayTheGame:
           Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
-            .setAuthor('Tic-Tac-Toe: How to play the game', client.user.displayAvatarURL())
+            .setAuthor('Tic-Tac-Toe: How to play the game', ticTacToeImageLink)
             .setDescription(`After the game starts several reactions (:arrow_left:\\*, :arrow_right:\\*, :arrow_up:\\*, :arrow_down:\\*, :white_check_mark:*, :octagonal_sign:) will appear under the game message.
             You will use them as the game controls. To use one, just click on the reaction.
             
@@ -962,7 +963,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
         case HelpType_BotDifficultyExplanation:
           Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
-            .setAuthor('Tic-Tac-Toe: Bot Difficulty Explanation', client.user.displayAvatarURL())
+            .setAuthor('Tic-Tac-Toe: Bot Difficulty Explanation', ticTacToeImageLink)
             .addFields({ name: 'Bot difficulty - Easy', value: 'In this difficulty bot always just picks a random move.' }, 
               { name: 'Bot difficulty - Normal', value: `In this difficulty bot checks if it can win in one move, and wins if yes.
               Else the bot checks if the opponent can win in one move, and blocks the win if yes.
@@ -977,7 +978,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
         case HelpType_WhoMadeTheBotAndHow:
           Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
-            .setAuthor('Tic-Tac-Toe: Developers', client.user.displayAvatarURL())
+            .setAuthor('Tic-Tac-Toe: Developers', ticTacToeImageLink)
             .setDescription('This  bot is made by **DV Game** using discord.js v12.5.3.\nThanks to **homvp** for several algorithm ideas and some code.')
             .setTimestamp()
             .setFooter(guild.name, guild.iconURL())], 64);
@@ -986,7 +987,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
           const XO_GamesPlayed = statistics.find(stat => stat.Name == 'XO_GamesPlayed').ValueInt;
           Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
-            .setAuthor('Tic-Tac-Toe: Statistics', client.user.displayAvatarURL())
+            .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
             .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
               { name: 'Game Statistics', value: `Games played: ${XO_GamesPlayed}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
               { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
