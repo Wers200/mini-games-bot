@@ -980,7 +980,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
           break;
         case HelpType_BotStatistics:
           console.log("Here.");
-          psql_client.query('SELECT XO_GamesPlayed FROM Statistics')
+          psql_client.query('SELECT XO_GamesPlayed FROM Statistics;')
             .then(XO_GamesPlayed => {
               console.log(XO_GamesPlayed);
               Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
