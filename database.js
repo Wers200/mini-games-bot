@@ -17,18 +17,38 @@ if(process.env.ENVIRONMENT == "local") {
     });
 } else if(process.env.ENVIRONMENT == "heroku") {
     psql_client = new Client({
-        connectionString: process.env.DATABASE_URL
+        connectionString: process.env.DATABASE_URL,
+        ssl: true
     });
 }
 psql_client.connect();
 
 // Add DB functions
-module.exports.SendRequest = SendRequest;
+module.exports.ConnectToDB = ConnectToDB;
+module.exports.SendRequestToDB = SendRequestToDB;
+module.exports.DisconnectFromDB = DisconnectFromDB;
 
 /**
- * @param {any} data
+ * Calls connect().
+ * @returns {Promise<void>}
+ */
+function ConnectToDB() { 
+    return psql_client.connect(); 
+}
+
+/**
+ * Calls query().
+ * @param {String} request
  * @returns {Promise<import('pg').QueryResult<any>>}
  */
-function SendRequest(data) {
-    return psql_client.query(data);
+function SendRequestToDB(request) {
+    return psql_client.query(request);
+}
+
+/**
+ * Calls end().
+ * @returns {Promise<void>}
+ */
+function DisconnectFromDB() {
+    return psql_client.end();
 }

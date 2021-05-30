@@ -325,13 +325,14 @@ class Size {
 
 //#endregion
 
-//#region Game classes
+//#region Game classes 
 
 //#region Tic-Tac-Toe
 
 //#region Variables
 
 /**@type {Number[]} XO_InGame */
+
 let XO_InGame = [];
 
 //#endregion
@@ -774,11 +775,9 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
-      database.SendRequest('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;')
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
     else if(gameTableFilled) { // If there are no win combinations, but the game table is filled, it is a draw
-      database.SendRequest('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;')
       return XO_GameState_Draw;
     }
     else return XO_GameState_Playing;
@@ -826,6 +825,7 @@ function Discord_SendInteractionAnswer(interaction, answer, embeds = [], flags =
 
 //#region Events
 
+/*
 // React on slash command use
 client.ws.on('INTERACTION_CREATE', async interaction => {
   // Variables
@@ -944,7 +944,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
               { name: 'Stopping the game', value: 'To stop the game you just need to press :octagonal_sign: reaction.' },
               { name: 'Getting game info', value: `From the game message you can get game info (Game State, Players, Game Table).
               On the first line after the title the players will be displayed (Player X VS Player O).
-              Then, on the second line you will see the game state (Current Turn\\*/Game Result)
+              Then, on the second line you will see the game state (Current Turn\\*/  /*  Game Result)
               Lastly, you will see the game table, with which you can understand what to do.
               
               \\*It will display only if you play with a human.` })
@@ -975,17 +975,14 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-          database.SendRequest('SELECT xo_gamesplayed FROM statistics;')
-           .then(XO_GamesPlayed => {
-              Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-              .setColor('#fff50f')
-              .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
-              .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
-                { name: 'Game Statistics', value: `Games played: ${XO_GamesPlayed}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
-                { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
-              .setTimestamp()
-              .setFooter(guild.name, guild.iconURL())], 64);
-           });
+            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+            .setColor('#fff50f')
+            .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
+            .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
+              { name: 'Game Statistics', value: `Games played: ?\nUsers playing: ${XO_InGame.length}`, inline: true }, 
+              { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
+            .setTimestamp()
+            .setFooter(guild.name, guild.iconURL())], 64);
           break;
       }
       break;
@@ -994,13 +991,13 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       break;
   }
 });
+*/
 
 client.on('ready', function() {
+  /*
   // Set client special presence
   client.user.setStatus('idle');
-  client.user.setActivity('Tic-Tac-Toe 2: Electric Boogaloo', { type: 'PLAYING' })
-  // Connect to the database
-  psql_client.connect();
+  client.user.setActivity('Tic-Tac-Toe 2: Electric Boogaloo', { type: 'PLAYING' });
   // Add slash commands to joined servers
   for(let i = 0; i < client.guilds.cache.size; i++) {
     // Add tic-tac-toe slash command
@@ -1107,6 +1104,9 @@ client.on('ready', function() {
       description: 'Gives you link to invite the bot to your server',
     }});
   }
+  */
+  client.user.setStatus('online');
+  client.user.setActivity('db test', { type: 'CUSTOM_STATUS' });
 });
 
 client.on('message', function(message) {
@@ -1125,6 +1125,7 @@ client.on('message', function(message) {
   }
 });
 
+/*
 // Add slash commands on the new server
 client.on('guildCreate', function(guild) {
   // Add tic-tac-toe slash command
@@ -1240,9 +1241,10 @@ client.on('guildDelete', function(guild) {
     });
   });
 });
-
+*/
 client.login(process.env.TOKEN2);
 
 //#endregion
 
 //#endregion
+
