@@ -1,3 +1,6 @@
+// Make .env work
+require('dotenv').config();
+
 // Catch Errors/Rejections, so the bot doesn't crash
 process.on('uncaughtException', (e) => {
 	console.log('Error: ' + e.stack);

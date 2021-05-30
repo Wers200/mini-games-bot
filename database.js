@@ -1,6 +1,12 @@
+// Make .env work
+require('dotenv').config()
+
+// Variables
 const { Client } = require('pg');
 /**@type { Client } psql_client */
 let psql_client;
+
+// Initialize psql_client
 if(process.env.ENVIRONMENT == "local") {
     psql_client = new Client({
         host: process.env.DB_HOST,
@@ -16,6 +22,7 @@ if(process.env.ENVIRONMENT == "local") {
 }
 psql_client.connect();
 
+// Add DB functions
 module.exports.SendRequest = SendRequest;
 
 /**
