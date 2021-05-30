@@ -13,7 +13,8 @@ if(process.env.ENVIRONMENT == "local") {
         port: process.env.DB_PORT,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
-        database: process.env.DB_DATABASE
+        database: process.env.DB_DATABASE,
+        ssl: true
     });
 } else if(process.env.ENVIRONMENT == "heroku") {
     psql_client = new Client({
@@ -21,8 +22,7 @@ if(process.env.ENVIRONMENT == "local") {
         ssl: true
     });
 }
-psql_client.connect();
-
+ 
 // Add DB functions
 module.exports.ConnectToDB = ConnectToDB;
 module.exports.SendRequestToDB = SendRequestToDB;
