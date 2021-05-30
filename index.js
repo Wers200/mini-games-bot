@@ -1242,6 +1242,7 @@ client.on('guildDelete', function(guild) {
   });
 });
 */
+
 client.login(process.env.TOKEN2);
 
 //#endregion

@@ -24,31 +24,4 @@ if(process.env.ENVIRONMENT == "local") {
 }
  
 // Add DB functions
-module.exports.ConnectToDB = ConnectToDB;
-module.exports.SendRequestToDB = SendRequestToDB;
-module.exports.DisconnectFromDB = DisconnectFromDB;
-
-/**
- * Calls connect().
- * @returns {Promise<void>}
- */
-function ConnectToDB() { 
-    return psql_client.connect(); 
-}
-
-/**
- * Calls query().
- * @param {String} request
- * @returns {Promise<import('pg').QueryResult<any>>}
- */
-function SendRequestToDB(request) {
-    return psql_client.query(request);
-}
-
-/**
- * Calls end().
- * @returns {Promise<void>}
- */
-function DisconnectFromDB() {
-    return psql_client.end();
-}
+module.exports = psql_client;
