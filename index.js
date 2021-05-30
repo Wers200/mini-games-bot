@@ -28,11 +28,7 @@ Object.defineProperty(Array.prototype, 'findIndexes', {
 // Global Variables
 const Discord = require('discord.js');
 const client = new Discord.Client();
-const { Client } = require('pg');
-const psql_client = new Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: true
-})
+const database = require('./database.js');
 
 //#region Helper classes
 
@@ -775,14 +771,11 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
-      psql_client.query(`UPDATE statistics
-      SET xo_gamesplayed = xo_gamesplayed + 1;`);
+      database.SendRequest('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;')
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
-    else if(gameTableFilled) { // If no win combinations, but the game table is filled, it is a draw
-      psql_client.connect();
-      psql_client.query(`UPDATE statistics
-      SET xo_gamesplayed = xo_gamesplayed + 1;`);
+    else if(gameTableFilled) { // If there are no win combinations, but the game table is filled, it is a draw
+      database.SendRequest('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;')
       return XO_GameState_Draw;
     }
     else return XO_GameState_Playing;
@@ -853,7 +846,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
           XO.HumanVSBot(interaction.member, difficulty, channel, tableSide, playerSign)
         }
       }
-      else {
+      else if(args[0].name == 'with-a-human') {
         let member = guild.members.cache.get(args[0].options[0].value); // Getting Player 2 object
         // Doing VARIOUS checks
         if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
@@ -979,8 +972,8 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-          psql_client.query('SELECT xo_gamesplayed FROM statistics;')
-            .then(XO_GamesPlayed => {
+          database.SendRequest('SELECT xo_gamesplayed FROM statistics;')
+           .then(XO_GamesPlayed => {
               Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
               .setColor('#fff50f')
               .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
@@ -989,7 +982,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
                 { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
               .setTimestamp()
               .setFooter(guild.name, guild.iconURL())], 64);
-            });
+           });
           break;
       }
       break;
@@ -1245,7 +1238,7 @@ client.on('guildDelete', function(guild) {
   });
 });
 
-client.login(process.env.token2);
+client.login(process.env.TOKEN2);
 
 //#endregion
 
