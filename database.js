@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 /**@type { Client } psql_client */
-const psql_client;
+let psql_client;
 if(process.env.ENVIRONMENT == "local") {
     psql_client = new Client({
         host: process.env.DB_HOST,
