@@ -981,7 +981,7 @@ client.ws.on('INTERACTION_CREATE', async (interaction) => {
             .setColor('#fff50f')
             .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
             .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
-              { name: 'Game Statistics', value: `Games played: ${await database.query('SELECT xo_gamesplayed FROM statistics;').rows[0]['xo_gamesplayed']}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
+              { name: 'Game Statistics', value: `Games played: ${await (database.query('SELECT xo_gamesplayed FROM statistics;')).rows[0]['xo_gamesplayed']}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
               { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
             .setTimestamp()
             .setFooter(guild.name, guild.iconURL())], 64);
