@@ -903,7 +903,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       }
       break;
     case 'bot-help':
-      let ticTacToeImageLink = 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.clipartkey.com%2Fmpngs%2Fm%2F110-1100210_tic-tac-toe-png.png&f=1&nofb=1';
+      let ticTacToeImageLink = 'https://ibb.co/Tv0DVWP';
       switch(args[0].value) {
         case HelpType_HowToStartTheGame:
           SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
@@ -977,22 +977,19 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-          database.query('SELECT xo_gamesplayed FROM statistics;').then(result => {
-            const XO_GamesPlayed = result
-            SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-              .setColor('#fff50f')
-              .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
-              .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
-                { name: 'Game Statistics', value: `Games played: ${XO_GamesPlayed}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
-                { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
-              .setTimestamp()
-              .setFooter(guild.name, guild.iconURL())], 64);
-          }).catch(error => SendInteractionAnswer(interaction, "Failed to connect to the database.", undefined, 64));
+          SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+            .setColor('#fff50f')
+            .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
+            .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
+              { name: 'Game Statistics', value: `Games played: ${await database.query('SELECT xo_gamesplayed FROM statistics;').rows[0]['xo_gamesplayed']}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
+              { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
+            .setTimestamp()
+            .setFooter(guild.name, guild.iconURL())], 64);
           break;
       }
       break;
     case 'invite-link':
-      SendInteractionAnswer(interaction, `The invite link (developer): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
+      SendInteractionAnswer(interaction, `The invite link (developer version): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
       break;
   }
 });
@@ -1109,7 +1106,7 @@ client.on('ready', function() {
   }
 });
 
-client.on('message', function(message) {
+client.on('message', message => {
   if(message.content.startsWith('/eval ') && message.author.id == '670559252456407070') {
     let code = message.content.substring(6); // Remove '/eval ' (7 characters) from message content and get code
     try {
@@ -1126,7 +1123,7 @@ client.on('message', function(message) {
 });
 
 // Add slash commands on the new server
-client.on('guildCreate', function(guild) {
+client.on('guildCreate', guild => {
   // Add tic-tac-toe slash command
   client.api.applications(client.user.id).guilds(guild.id).commands.post({data: {
     name: 'tic-tac-toe',
@@ -1233,7 +1230,7 @@ client.on('guildCreate', function(guild) {
 });
 
 // Remove slash commands on the deleted server
-client.on('guildDelete', function(guild) {
+client.on('guildDelete', guild => {
   client.api.applications(client.user.id).guilds(guild.id).commands.get().then(commands => {
     commands.forEach(command => {
       client.api.applications(client.user.id).guilds(guild.id).commands(command.id).delete();
