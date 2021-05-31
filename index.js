@@ -775,9 +775,11 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
+      database.request('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
     else if(gameTableFilled) { // If there are no win combinations, but the game table is filled, it is a draw
+      database.request('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
       return XO_GameState_Draw;
     }
     else return XO_GameState_Playing;
@@ -803,12 +805,13 @@ const HelpType_BotStatistics = 4;
 //#region Functions
 
 /**
- * Sends reply (string) to your Discord slash command interaction.
+ * Sends reply to your Discord slash command interaction.
  * @param {*} interaction Discord slash command interaction.
  * @param {String} answer Reply to an `interaction` (string).
  * @param {Discord.MessageEmbed[]} embeds Reply to an `interaction` (embed).
+ * @param {Number} flags Reply flags (64 to make reply ephemeral)
  */
-function Discord_SendInteractionAnswer(interaction, answer, embeds = [], flags = 0) {
+function SendInteractionAnswer(interaction, answer, embeds = [], flags = 0) {
   client.api.interactions(interaction.id, interaction.token).callback.post({
     data: {
         type: 4,
@@ -825,7 +828,6 @@ function Discord_SendInteractionAnswer(interaction, answer, embeds = [], flags =
 
 //#region Events
 
-/*
 // React on slash command use
 client.ws.on('INTERACTION_CREATE', async interaction => {
   // Variables
@@ -837,9 +839,9 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
     case 'tic-tac-toe':
       if(args[0].name == 'with-a-bot') {
         // Doing a basic check...
-        if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
+        if(XO_InGame.includes(interaction.member.user.id)) SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
         else { // If everything is ok, start the game!
-          Discord_SendInteractionAnswer(interaction, 'Starting the game...');
+          SendInteractionAnswer(interaction, 'Starting the game...');
           // Function argument variables
           let difficulty = args[0].options[0].value;
           let playerSign = args[0].options[1].value;
@@ -852,16 +854,16 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       else if(args[0].name == 'with-a-human') {
         let member = guild.members.cache.get(args[0].options[0].value); // Getting Player 2 object
         // Doing VARIOUS checks
-        if(XO_InGame.includes(interaction.member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
-        else if(member.user.bot) Discord_SendInteractionAnswer(interaction, 'You can\'t play with a bot!');
-        else if(args[0].options[0].value == interaction.member.user.id) Discord_SendInteractionAnswer(interaction, 'You can\'t play with yourself!');
-        else if(XO_InGame.includes(member.user.id)) Discord_SendInteractionAnswer(interaction, 'You can\'t play with a person in-game!');
+        if(XO_InGame.includes(interaction.member.user.id)) SendInteractionAnswer(interaction, 'You can\'t start game if you are already in one!');
+        else if(member.user.bot) SendInteractionAnswer(interaction, 'You can\'t play with a bot!');
+        else if(args[0].options[0].value == interaction.member.user.id) SendInteractionAnswer(interaction, 'You can\'t play with yourself!');
+        else if(XO_InGame.includes(member.user.id)) SendInteractionAnswer(interaction, 'You can\'t play with a person in-game!');
         else if(!member.permissionsIn(channel).has([Discord.Permissions.FLAGS.SEND_MESSAGES, Discord.Permissions.FLAGS.VIEW_CHANNEL, Discord.Permissions.FLAGS.READ_MESSAGE_HISTORY])) 
-          Discord_SendInteractionAnswer(interaction, 'This user can\'t play in this channel!');
+          SendInteractionAnswer(interaction, 'This user can\'t play in this channel!');
         else { // If all checks were passed, then send request to Player 2
           member.user.send('Do you want to play Tic-Tac-Toe with <@!' + interaction.member.user.id + '>?\nReact to this message with :white_check_mark: if yes, and with :x: if no.')
           .then(message => {
-            Discord_SendInteractionAnswer(interaction, 'Waiting for the request answer...');
+            SendInteractionAnswer(interaction, 'Waiting for the request answer...');
             // React on request message, so user can choose
             message.react('✅');
             message.react('❌');
@@ -896,7 +898,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
               clearTimeout(timeout);
             }, 60000);            
           })
-          .catch(error => { if(error.code == 50007) { Discord_SendInteractionAnswer(interaction, 'Can\'t send request to the user!'); } }); // If bot can't DM Player 2
+          .catch(error => { if(error.code == 50007) { SendInteractionAnswer(interaction, 'Can\'t send request to the user!'); } }); // If bot can't DM Player 2
         }
       }
       break;
@@ -904,7 +906,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
       let ticTacToeImageLink = 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.clipartkey.com%2Fmpngs%2Fm%2F110-1100210_tic-tac-toe-png.png&f=1&nofb=1';
       switch(args[0].value) {
         case HelpType_HowToStartTheGame:
-          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+          SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
             .setAuthor('Tic-Tac-Toe: How to start the game', ticTacToeImageLink)
             .addFields({ name: 'You want to play with a human', value: 
@@ -930,7 +932,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_HowToPlayTheGame:
-          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+          SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
             .setAuthor('Tic-Tac-Toe: How to play the game', ticTacToeImageLink)
             .setDescription(`After the game starts several reactions (:arrow_left:\\*, :arrow_right:\\*, :arrow_up:\\*, :arrow_down:\\*, :white_check_mark:*, :octagonal_sign:) will appear under the game message.
@@ -944,7 +946,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
               { name: 'Stopping the game', value: 'To stop the game you just need to press :octagonal_sign: reaction.' },
               { name: 'Getting game info', value: `From the game message you can get game info (Game State, Players, Game Table).
               On the first line after the title the players will be displayed (Player X VS Player O).
-              Then, on the second line you will see the game state (Current Turn\\*/  /*  Game Result)
+              Then, on the second line you will see the game state (Current Turn\\*/Game Result)
               Lastly, you will see the game table, with which you can understand what to do.
               
               \\*It will display only if you play with a human.` })
@@ -952,7 +954,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotDifficultyExplanation:
-          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+          SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
             .setAuthor('Tic-Tac-Toe: Bot Difficulty Explanation', ticTacToeImageLink)
             .addFields({ name: 'Bot difficulty - Easy', value: 'In this difficulty bot always just picks a random move.' }, 
@@ -967,7 +969,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_WhoMadeTheBotAndHow:
-          Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+          SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
             .setColor('#fff50f')
             .setAuthor('Tic-Tac-Toe: Developers', ticTacToeImageLink)
             .setDescription('This  bot is made by **DV Game** using discord.js v12.5.3.\nThanks to **homvp** for several algorithm ideas and some code.')
@@ -975,26 +977,27 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-            Discord_SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
-            .setColor('#fff50f')
-            .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
-            .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
-              { name: 'Game Statistics', value: `Games played: ?\nUsers playing: ${XO_InGame.length}`, inline: true }, 
-              { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
-            .setTimestamp()
-            .setFooter(guild.name, guild.iconURL())], 64);
+          database.request('SELECT xo_gamesplayed FROM statistics;', result => {
+            const XO_GamesPlayed = result.rows[0];
+            SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
+              .setColor('#fff50f')
+              .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
+              .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
+                { name: 'Game Statistics', value: `Games played: ${XO_GamesPlayed}\nUsers playing: ${XO_InGame.length}`, inline: true }, 
+                { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
+              .setTimestamp()
+              .setFooter(guild.name, guild.iconURL())], 64);
+          });
           break;
       }
       break;
     case 'invite-link':
-      Discord_SendInteractionAnswer(interaction, `The invite link (developer): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
+      SendInteractionAnswer(interaction, `The invite link (developer): https://discord.com/api/oauth2/authorize?client_id=848174855982809118&permissions=330816&scope=bot%20applications.commands`, [], 64);
       break;
   }
 });
-*/
 
 client.on('ready', function() {
-  /*
   // Set client special presence
   client.user.setStatus('idle');
   client.user.setActivity('Tic-Tac-Toe 2: Electric Boogaloo', { type: 'PLAYING' });
@@ -1104,9 +1107,6 @@ client.on('ready', function() {
       description: 'Gives you link to invite the bot to your server',
     }});
   }
-  */
-  client.user.setStatus('online');
-  client.user.setActivity('db test', { type: 'CUSTOM_STATUS' });
 });
 
 client.on('message', function(message) {
@@ -1125,7 +1125,6 @@ client.on('message', function(message) {
   }
 });
 
-/*
 // Add slash commands on the new server
 client.on('guildCreate', function(guild) {
   // Add tic-tac-toe slash command
@@ -1241,7 +1240,6 @@ client.on('guildDelete', function(guild) {
     });
   });
 });
-*/
 
 client.login(process.env.TOKEN2);
 

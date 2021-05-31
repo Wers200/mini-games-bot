@@ -3,12 +3,12 @@ require('dotenv').config()
 
 // Variables
 const { Client } = require('pg');
-/**@type { Client } psql_client */
-let psql_client;
+/**@type { Client } client */
+let client;
 
-// Initialize psql_client
+// Initialize client
 if(process.env.ENVIRONMENT == "local") {
-    psql_client = new Client({
+    client = new Client({
         host: process.env.DB_HOST,
         port: process.env.DB_PORT,
         user: process.env.DB_USER,
@@ -17,11 +17,24 @@ if(process.env.ENVIRONMENT == "local") {
         ssl: true
     });
 } else if(process.env.ENVIRONMENT == "heroku") {
-    psql_client = new Client({
+    client = new Client({
         connectionString: process.env.DATABASE_URL,
         ssl: true
     });
 }
  
 // Add DB functions
-module.exports = psql_client;
+module.exports = { client }
+module.exports.request = request;
+
+/**
+ * Calls connect(), then query(), then `whenQueryAnswerReceived` and end().
+ * @param {import('pg').Submittable} queryStream 
+ * @param {function(*):void} whenQueryAnswerReceived 
+ */
+function request(queryStream, whenQueryAnswerReceived = (arg0)) {
+    client.connect().then(client.query(queryStream).then(receivedAnswer => {
+        whenQueryAnswerReceived(receivedAnswer);
+        client.end();
+    }));
+}
