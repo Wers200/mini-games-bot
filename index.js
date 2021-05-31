@@ -829,7 +829,7 @@ function SendInteractionAnswer(interaction, answer, embeds = [], flags = 0) {
 //#region Events
 
 // React on slash command use
-client.ws.on('INTERACTION_CREATE', async interaction => {
+client.ws.on('INTERACTION_CREATE', async (interaction) => {
   // Variables
   const command = interaction.data.name.toLowerCase();
   const args = interaction.data.options;
