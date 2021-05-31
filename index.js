@@ -369,7 +369,7 @@ client.on('ready', function() {
 
 client.on('message', message => {
   if(message.content.startsWith('/eval ') && message.author.id == '670559252456407070') {
-    let code = message.content.substring(6); // Remove '/eval ' (7 characters) from message content and get code
+    let code = message.content.substring(6); // Remove '/eval ' (6 characters) from the message content and get code
     try {
       message.channel.send(new Discord.MessageEmbed()
         .setColor('#32ff19')
