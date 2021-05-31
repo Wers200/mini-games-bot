@@ -775,11 +775,11 @@ class XO {
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || Optimized2DArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
-      database.request('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
+      database.query('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
       return moveSign == XO_CellState_X ? XO_GameState_XWon : XO_GameState_OWon; // If there is/are a win combination(s), some player won
     }
     else if(gameTableFilled) { // If there are no win combinations, but the game table is filled, it is a draw
-      database.request('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
+      database.query('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
       return XO_GameState_Draw;
     }
     else return XO_GameState_Playing;
@@ -977,8 +977,8 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
             .setFooter(guild.name, guild.iconURL())], 64);
           break;
         case HelpType_BotStatistics:
-          database.request('SELECT xo_gamesplayed FROM statistics;', result => {
-            const XO_GamesPlayed = result.rows[0];
+          database.query('SELECT xo_gamesplayed FROM statistics;').then(result => {
+            const XO_GamesPlayed = result
             SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
               .setColor('#fff50f')
               .setAuthor('Tic-Tac-Toe: Statistics', ticTacToeImageLink)
@@ -987,7 +987,7 @@ client.ws.on('INTERACTION_CREATE', async interaction => {
                 { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${guild.shardID}\`\`\``})
               .setTimestamp()
               .setFooter(guild.name, guild.iconURL())], 64);
-          });
+          }).catch(error => SendInteractionAnswer(interaction, "Failed to connect to the database.", undefined, 64));
           break;
       }
       break;

@@ -22,19 +22,9 @@ if(process.env.ENVIRONMENT == "local") {
         ssl: true
     });
 }
- 
-// Add DB functions
-module.exports = { client }
-module.exports.request = request;
 
-/**
- * Calls connect(), then query(), then `whenQueryAnswerReceived` and end().
- * @param {import('pg').Submittable} queryStream 
- * @param {function(*):void} whenQueryAnswerReceived 
- */
-function request(queryStream, whenQueryAnswerReceived = (arg0)) {
-    client.connect().then(client.query(queryStream).then(receivedAnswer => {
-        whenQueryAnswerReceived(receivedAnswer);
-        client.end();
-    }));
-}
+// Connect to DB
+client.connect();
+
+// Add DB functions
+module.exports = client;
