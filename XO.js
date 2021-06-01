@@ -449,11 +449,11 @@ class XO {
     || ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
-      database.query('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
+      database.query(`UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1; UPDATE statistics SET xo_lastgame = ${new Date().getTime() };`);
       return moveSign == XO.CellState_X ? XO.GameState_XWon : XO.GameState_OWon; // If there is/are a win combination(s), some player won
     }
     else if(gameTableFilled) { // If there are no win combinations, but the game table is filled, it is a draw
-      database.query('UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1;');
+      database.query(`UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1; UPDATE statistics SET xo_lastgame = ${new Date().getTime() };`);
       return XO.GameState_Draw;
     }
     else return XO.GameState_Playing;
