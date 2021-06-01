@@ -29,7 +29,7 @@ Object.defineProperty(Array.prototype, 'findIndexes', {
 //#region Variables
 
 const Discord = require('discord.js');
-const client = new Discord.Client();
+const client = new Discord.Client({ fetchAllMembers: true });
 const database = require('./database.js');
 const XO = require('./XO.js');
 
@@ -258,8 +258,8 @@ client.ws.on('INTERACTION_CREATE', async (interaction) => {
       SendInteractionAnswer(interaction, undefined, [new Discord.MessageEmbed() // Sending response
         .setColor('#9c53c1')
         .setAuthor('Global Statistics', client.user.displayAvatarURL())
-        .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.cache.filter(user => !user.bot).size}`, inline: true }, 
-          { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\nShard ID: ${channel.guild.shardID}\`\`\``})
+        .addFields({ name: 'Bot Statistics', value:`Server count: ${client.guilds.cache.size}\nMember count: ${client.users.holds}`, inline: true }, 
+          { name: 'Technical Statistics', value: `\`\`\`c++\nPing: ${client.ws.ping} ms\nUptime: ${(client.uptime/1000/60/60).toFixed(2)} h\`\`\``})
         .setTimestamp()
         .setFooter(channel.guild.name, channel.guild.iconURL())], 64);
       break;
