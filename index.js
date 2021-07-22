@@ -251,7 +251,7 @@ client.ws.on('INTERACTION_CREATE', async (interaction) => {
       }
       break;
     case 'invite-link':
-      SendInteractionAnswer(interaction, `The invite link (developer version): https://rb.gy/crnxkr`, [], 64);
+      SendInteractionAnswer(interaction, `The invite link: https://discord.com/api/oauth2/authorize?client_id=841733014513385473&permissions=339008&scope=bot%20applications.commands`, [], 64);
       break;
   }
 });
