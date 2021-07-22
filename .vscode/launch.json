@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Mini-games bot (Debug)",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "node",
+            "args": [
+                "Main.js"
+            ],
+            "sourceMaps": true,
+            "stopOnEntry": false,
+            "outputCapture": "std"
+        }
+    ]
+}

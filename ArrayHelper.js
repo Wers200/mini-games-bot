@@ -1,5 +1,5 @@
 class Point {
-  // Directions
+  //#region Direction shorthands
   static DirectionLeft = Object.freeze(new Point(-1, 0));
   static DirectionUpLeft = Object.freeze(new Point(-1, -1));
   static DirectionUp = Object.freeze(new Point(0, -1));
@@ -8,12 +8,14 @@ class Point {
   static DirectionDownRight = Object.freeze(new Point(1, 1));
   static DirectionDown = Object.freeze(new Point(0, 1));
   static DirectionDownLeft = Object.freeze(new Point(-1, 1));
+  //#endregion
 
-  // Other shorthands
+  //#region Position shorthands
   static Zero = Object.freeze(new Point(0, 0));
   static One = Object.freeze(new Point(1, 1));
   static OneInverted = Object.freeze(new Point(-1, -1));
   static Empty = Object.freeze(new Point(null, null));
+  //#endregion
 
   /**
    * 
@@ -38,14 +40,14 @@ class Point {
    * @param {Size} arraySize Size of array.
    * @returns {Point} Index of your point in 2D array.
    */
-  static Get2DIndexFrom1D(index, arraySize) { // Another utility function
+  static Get2DIndexFrom1D(index, arraySize) {
     return new Point(index % arraySize.Width, Math.floor(index / arraySize.Width));
   }
 
   /**
    * 
    * @param {Size} arraySize Size of array.
-   * @returns {Boolean} Is your point out of array's bounds.
+   * @returns {Boolean} Is your point out of array bounds.
    */
   IsOutOfBounds(arraySize) {
     const IsSmallerThanRange = this.X < 0 || this.Y < 0;
@@ -83,25 +85,26 @@ class Size {
 }
 
 class ArrayLogic { 
-  static InfoRayReturn_Points = Object.freeze(0);
-  static InfoRayReturn_ValuesInfoInfo = Object.freeze(1);
-  static InfoRayReturn_Both = Object.freeze(2);
+  static InfoRayReturn = Object.freeze({
+    Points: 0,
+    Values: 1,
+    Both: 2
+  });
 
   /**
-   * Creates new Optimized 2D array (shorthand).
-   * @param {Size} size The size of new array.
-   * @param {Number} fill The number to fill new array with.
-   * @returns {Number[]} New Optimized 2D array.
+   * Creates a new 2D array (shorthand).
+   * @param {Size} size The size of a new array.
+   * @param {Number} fill The number to fill a new array with.
+   * @returns {Number[]} A new array.
    */
   static CreateArray(size, fill = 0) {
-    /**@type {Number[]} array */
     let array = new Array(size.Area);
     array.fill(fill);
     return array;
   }
 
   /**
-   * Stringifies your Optimized 2D array.
+   * Stringifies your 2D array.
    * @param {Number[]} array Array of numbers to stringify.
    * @param {Number[]} overlay The array of indexes, that will make overlayed string used instead of original string if they match an array's index.
    * @param {Number} arrayWidth The array width value.
@@ -113,7 +116,7 @@ class ArrayLogic {
   static Stringify(array, overlay, arrayWidth, charDictionary, overlayCharDictionary, putNewLine) {
     let stringifiedArray = '';
     for(let i = 0; i < array.length; i++) {
-      // Add new line if before writing new row.
+      // Add new line if before writing new row
       if(i % arrayWidth == 0 && putNewLine && i > 0) stringifiedArray += '\n';
       // Get the next char/string
       const currentChar = Object.keys(charDictionary).find(key => charDictionary[key] === array[i]);
@@ -128,8 +131,8 @@ class ArrayLogic {
    * Checks if there is `requiredLength` of `requiredNumbers` in a row (1 Ray).
    * @param {Point} position The point where ray spawns.
    * @param {Point} move The point added to current ray position each cycle.
-   * @param {Number[]} array The Optimized 2D array for moving the ray.
-   * @param {Size} arraySize The size of Optimized 2D array.
+   * @param {Number[]} array The 2D array for moving the ray.
+   * @param {Size} arraySize Size of the 2D array.
    * @param {Number[]} requiredNumbers Number(s) allowing ray to not break.
    * @param {Number} requiredLength Length ray needs to pass.
    * @param {Boolean} bounce Should ray bounce after breaking once.
@@ -137,11 +140,11 @@ class ArrayLogic {
    */
   static ShootCheckerRay(position, move, array, arraySize, requiredNumbers, requiredLength, bounce) {
     for(let i = 0; i < requiredLength; i++) {
-      if(i == requiredLength - 1) return true; // If needed length is passed, return true
+      if(i == requiredLength - 1) return true;
       const nextPosition = new Point(position.X + move.X, position.Y + move.Y);
       const isRequiredNumberOnNextPosition = requiredNumbers.includes(array[nextPosition.Get1DIndexFrom2D(arraySize.Width)]);
       const moveConditions = !nextPosition.IsOutOfBounds(arraySize) && isRequiredNumberOnNextPosition;
-      if(moveConditions) position = nextPosition; // Move ray if certain conditions are met
+      if(moveConditions) position = nextPosition;
       else if(bounce) return this.ShootCheckerRay(position, lifetime, new Point(-move.X , -move.Y), 
         array, arraySize, requiredNumbers, requiredLength, false); // Make ray bounce (spawn it with inverted direction)
       else return false;
@@ -152,34 +155,31 @@ class ArrayLogic {
    * Checks if there is `requiredLength` of `requiredNumbers` in a row (2 Rays).
    * @param {Point} position The point where rays spawn.
    * @param {Point} move The point added to current ray position each cycle.
-   * @param {Number[]} array The Optimized 2D array for moving the ray.
-   * @param {Size} arraySize The size of Optimized 2D array.
+   * @param {Number[]} array The 2D array for moving the ray.
+   * @param {Size} arraySize Size of the 2D array.
    * @param {Number[]} requiredNumbers Number(s) allowing rays to not break.
    * @param {Number} requiredLength How many numbers in a row need to be hit.
    * @returns {Boolean} Did rays pass needed length.
    */
   static ShootCheckerRay2(position, move, array, arraySize, requiredNumbers, requiredLength) {
-    let firstRayPassed = -1; // How much did first (non-inverted direction) ray passed
-    let secondRayPassed = -1; // How much did second (inverted direction) ray passed
+    let firstRayPassed = -1;
+    let secondRayPassed = -1;
     let currentOffset = Point.Zero;
     for(let currentLength = 0; currentLength < requiredLength; currentLength++) {
-      // Adjust Current Offset
       if(firstRayPassed == -1 || secondRayPassed == -1) currentOffset = new Point(currentOffset.X + move.X, currentOffset.Y + move.Y);
-      // Check First Ray
       if(firstRayPassed == -1) {
         const currentPosition = new Point(position.X + currentOffset.X, position.Y + currentOffset.Y);
         const isRequiredNumberOnCurrentPosition = requiredNumbers.includes(array[currentPosition.Get1DIndexFrom2D(arraySize.Width)]);
         const moveConditions = !currentPosition.IsOutOfBounds(arraySize) && isRequiredNumberOnCurrentPosition;
-        if(!moveConditions) firstRayPassed = currentLength; // If need to break first ray, write how much it passed
+        if(!moveConditions) firstRayPassed = currentLength;
       }
-      // Check Second Ray
       if(secondRayPassed == -1) {
         const currentPosition = new Point(position.X - currentOffset.X, position.Y - currentOffset.Y);
         const isRequiredNumberOnCurrentPosition = requiredNumbers.includes(array[currentPosition.Get1DIndexFrom2D(arraySize.Width)]);
         const moveConditions = !currentPosition.IsOutOfBounds(arraySize) && isRequiredNumberOnCurrentPosition;
-        if(!moveConditions) secondRayPassed = currentLength; // If need to break second ray, write how much it passed
+        if(!moveConditions) secondRayPassed = currentLength;
       }
-      // Return result if both rays broke
+
       if(firstRayPassed != -1 && secondRayPassed != -1) return (firstRayPassed + secondRayPassed) + 1 == requiredLength;
     } 
   }
@@ -189,24 +189,22 @@ class ArrayLogic {
    * 
    * Info return formats:
    * 
-   * `InfoRayReturn_Points`: Returns points array.
+   * `InfoRayReturn.Points`: Returns passed points array.
    * 
-   * `InfoRayReturn_ValuesInfo`: Returns array values info (Format - Value: How many times encountered).
+   * `InfoRayReturn.Values`: Returns passed points values info array (Format - Value: How many times encountered).
    * 
-   * `InfoRayReturn_Both`: Returns both (Format - [Points, Number Info]).
+   * `InfoRayReturn.Both`: Returns both (Format - [Points, Number Info]).
    * @param {Point} position The point where ray spawns.
    * @param {Number} lifetime How many iterations ray can pass.
    * @param {Point} move The value added to current ray position each cycle.
-   * @param {Number[]} array The Optimized 2D array for moving ray.
-   * @param {Size} arraySize The size of Optimized 2D array.
+   * @param {Number[]} array The 2D array for moving ray.
+   * @param {Size} arraySize Size of the 2D array.
    * @param {Number[]} requiredNumbers Number(s) allowing ray to not break.
    * @param {Boolean} bounce Should ray bounce after breaking once.
    * @param {Number} returnType What to return (Format - InfoRayReturn)
-   * @returns Array of points the ray passed, `move` variable and how many cells the ray have passed.
+   * @returns The return type you selected via returnType.
    */
   static ShootInfoRay(position, lifetime, move, array, arraySize, requiredNumbers, bounce, returnType) {
-    // Add info/other variables
-    /**@type {Point[]} path */
     let path = [];
     let numberInfo = {};
     requiredNumbers.forEach(number => numberInfo[number] = 0);
@@ -228,7 +226,7 @@ class ArrayLogic {
         }
         else if(bounce) return this.ShootInfoRay(position, lifetime, new Point(-move.X , -move.Y), 
           array, arraySize, requiredNumbers, false, returnType); // Make ray bounce (spawn it with inverted direction)
-        else return returnType == this.InfoRayReturn_Points ? path : returnType == this.InfoRayReturn_ValuesInfo ? numberInfo : [path, numberInfo];
+        else return returnType == this.InfoRayReturn.Points ? path : returnType == this.InfoRayReturn.Values ? numberInfo : [path, numberInfo];
       }
     } else return undefined;
   }

@@ -1,31 +1,45 @@
 const Discord = require('discord.js')
-const { Point, Size, ArrayLogic } = require('./Optimized2DArrayHelper.js')
-const Mathf = require('./mathf.js');
-const database = require('./database.js');
+const { Point, Size, ArrayLogic } = require('./ArrayHelper.js')
+const Mathf = require('./Mathf.js');
+const database = require('./Database.js');
 
-class XO {
-  //#region Readability improvers
+module.exports = class XO {
+  //#region Enums
 
-  static BotDifficulty_Easy = Object.freeze(0);
-  static BotDifficulty_Normal = Object.freeze(1);
-  static BotDifficulty_Hard = Object.freeze(2);
+  static BotDifficulty = Object.freeze({
+    Easy: 0,
+    Normal: 1,
+    Hard: 2
+  });
 
-  static CellState_None = Object.freeze(0);
-  static CellState_X = Object.freeze(1);
-  static CellState_O = Object.freeze(2);
+  static CellState = Object.freeze({
+    None: 0,
+    X: 1,
+    O: 2
+  });
 
-  static CurrentTurn_X = Object.freeze(-1);
-  static CurrentTurn_O = Object.freeze(1);
+  static CurrentTurn = Object.freeze({
+    X: 0,
+    O: 1
+  });
 
-  static GameState_XWon = Object.freeze(0);
-  static GameState_OWon = Object.freeze(1);
-  static GameState_Draw = Object.freeze(2);
-  static GameState_Playing = Object.freeze(3);
+  static GameState = Object.freeze({
+    XWon: 0,
+    OWon: 1,
+    Draw: 2,
+    Playing: 3
+  });
 
-  static CellState_CharDictionary = Object.freeze({ '<:XO_CellNone:843900699989114930>': XO.CellState_None, '<:XO_CellX:843900699976269835>': 
-    XO.CellState_X, '<:XO_CellO:843900699937996891>': XO.CellState_O });
-  static CellState_OverlayCharDictionary = Object.freeze({ '<:XO_CellNone:843900699989114930>': '<:XO_CellNone_S:843905503872155669>', '<:XO_CellX:843900699976269835>': 
-    '<:XO_CellX_S:843905503868223558>', '<:XO_CellO:843900699937996891>': '<:XO_CellO_S:843905503923142716>' });
+  static CellStateCharDictionary = Object.freeze({ 
+    '<:XO_CellNone:843900699989114930>': XO.CellState.None, 
+    '<:XO_CellX:843900699976269835>': XO.CellState.X, 
+    '<:XO_CellO:843900699937996891>': XO.CellState.O 
+  });
+  static CellStateOverlayCharDictionary = Object.freeze({ 
+    '<:XO_CellNone:843900699989114930>': '<:XO_CellNone_S:843905503872155669>', 
+    '<:XO_CellX:843900699976269835>': '<:XO_CellX_S:843905503868223558>', 
+    '<:XO_CellO:843900699937996891>': '<:XO_CellO_S:843905503923142716>' 
+  });
     
   //#endregion
 
@@ -46,78 +60,75 @@ class XO {
    * @param {Number} playerSign Sign, that the player uses (Format - CurrentTurn).
    */
   static HumanVSBot(player, difficulty, channel, gameTableSide, playerSign) {
-    // Variables
-    gameTableSide = Mathf.clamp(gameTableSide, 3, 7); // Clamp side size to minimum and maximum values
-    let gameTable = ArrayLogic.CreateArray(Size.GetSizeFromSide(gameTableSide), XO.CellState_None);
+    gameTableSide = Mathf.clamp(gameTableSide, 3, 7);
+    let gameTable = ArrayLogic.CreateArray(Size.GetSizeFromSide(gameTableSide), XO.CellState.None);
     let cursor = new Point(Math.floor((gameTableSide - 1) / 2), Math.floor((gameTableSide - 1) / 2));
-    let lastBotMove = playerSign == XO.CurrentTurn_O ? XO.MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, cursor, Point.OneInverted) : Point.OneInverted; 
-    // Pushing player into in-game players list
+    let lastBotMove = playerSign == XO.CurrentTurn.O ? XO.MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, cursor, Point.OneInverted) : Point.OneInverted; 
     if(!XO.InGame.includes(player.user.id)) XO.InGame.push(player.user.id);
-    // Send game message
+    // Send a game message
     channel.send(new Discord.MessageEmbed()
       .setColor('#0099ff')
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)
-      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty_Easy ? 'Easy' : difficulty == XO.BotDifficulty_Normal ? 'Normal' : 'Hard'})**\n
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
+      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty.Easy ? 'Easy' : difficulty == XO.BotDifficulty.Normal ? 'Normal' : 'Hard'})**\n
+      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(channel.guild.name, channel.guild.iconURL()))
     .then(message => {
-      // Adding Reactions (Controls)
+      //#region Add reactions
       message.react('⬅️');
       message.react('➡️');
       message.react('⬆️');
       message.react('⬇️');
       message.react('✅');
       message.react('🛑');
-      // Adding Reaction Collector
+      //#endregion
+
+      //#region Reaction events
       const filter = (reaction, user) => user.id === player.user.id;
       const collector = message.createReactionCollector(filter, { dispose: true });
       collector.on('collect', (reaction, user) => {
-        // Is it turn of user who reacts? Or not?
         switch(reaction.emoji.name) {
           // Controls (Arrows)
           case '⬅️':
             if(cursor.X > 0) {       
-              cursor.X -= 1; // Moving cursor & updating message then
+              cursor.X -= 1;
               XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide);
             }
             break;
           case '➡️':
             if(cursor.X < gameTableSide - 1) {             
-              cursor.X += 1; // Moving cursor & updating message then
+              cursor.X += 1;
               XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide);
             }
             break;
           case '⬆️':
             if(cursor.Y > 0) {             
-              cursor.Y -= 1; // Moving cursor & updating message then
+              cursor.Y -= 1;
               XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide);
             }
             break;
           case '⬇️':
             if(cursor.Y < gameTableSide - 1) {             
-              cursor.Y += 1; // Moving cursor & updating message then
+              cursor.Y += 1;
               XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide);
             }
             break;
           // Controls (Place Tile)
           case '✅':           
-            if(gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] == XO.CellState_None) {                     
-              gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] = playerSign == XO.CurrentTurn_X ? XO.CellState_X : XO.CellState_O;
-              let state = XO.CheckGameState(gameTable, cursor, gameTableSide); // Get game state
-              if(state != XO.GameState_Playing) { // If human made a move that changes game state
-                message.reactions.removeAll();     
-                // Updating message including game state
-                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, state);
+            if(gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] == XO.CellState.None) {                     
+              gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] = playerSign == XO.CurrentTurn.X ? XO.CellState.X : XO.CellState.O;
+              if(XO.CheckGameState(gameTable, cursor, gameTableSide) != XO.GameState.Playing) {
+                message.reactions.removeAll();
+                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));
                 XO.InGame.splice(XO.InGame.indexOf(player.user.id));
               } else {
-                lastBotMove = XO.MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, cursor, lastBotMove);
-                state = XO.CheckGameState(gameTable, lastBotMove, gameTableSide);               
-                if(state != XO.GameState_Playing) { // If bot made a move that changes game state
+                lastBotMove = XO.MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, cursor, lastBotMove);        
+                if(XO.CheckGameState(gameTable, cursor, gameTableSide) != XO.GameState.Playing) {
                   message.reactions.removeAll();
                   XO.InGame.splice(XO.InGame.indexOf(player.user.id));
+                  XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));
                 }
-                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, state == 3 ? cursor : Point.OneInverted, gameTableSide, state);          
+                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));          
               }
             }
             break;
@@ -129,9 +140,11 @@ class XO {
             break;
         }
       });
+      //#endregion
+
       collector.on('remove', (reaction, user) => {
         collector.handleCollect(reaction, user);
-      }); // Make 'remove' event do the same thing 'collect' event does
+      });
     });
   }
 
@@ -146,42 +159,41 @@ class XO {
    * @returns {Point} The bot's move position.
    */
   static MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, lastPlayerMove, lastBotMove) {
-    // Variables (shorthands in this case)
-    let botCellState = playerSign == XO.CurrentTurn_X ? XO.CellState_O : XO.CellState_X;
+    let botCellState = playerSign == XO.CurrentTurn.X ? XO.CellState.O : XO.CellState.X;
     let gameTableSize = Size.GetSizeFromSide(gameTableSide);
-    
     switch(difficulty) {
-      case XO.BotDifficulty_Easy: // If easy mode, just pick a random move
+      case XO.BotDifficulty.Easy: 
+        // Just do a random move
         let possibleMoves = XO.GetPossibleMoves(gameTable);
         let randomNumber = Mathf.randomInt(0, possibleMoves.length);
         gameTable[possibleMoves[randomNumber]] = botCellState;
         return Point.Get2DIndexFrom1D(possibleMoves[randomNumber], gameTableSize);
-      case XO.BotDifficulty_Normal:
+      case XO.BotDifficulty.Normal:
         // Get one-move win moves for the bot and human player
         let botWinMoves = XO.GetPotentionalWinMoves(gameTable, -playerSign, gameTableSide, lastBotMove, 1);
         let playerWinMoves = XO.GetPotentionalWinMoves(gameTable, playerSign, gameTableSide, lastPlayerMove, 1);
         if(botWinMoves.length > 0) { // If the bot can win in one move, do that move
-          let randomNumber = Mathf.randomInt(0, botWinMoves.length); // Get random bot win combination index
+          let randomNumber = Mathf.randomInt(0, botWinMoves.length);
           gameTable[botWinMoves[randomNumber][0].Get1DIndexFrom2D(gameTableSide)] = botCellState;
-          return botWinMoves[randomNumber][0]; // Do a move and return position
+          return botWinMoves[randomNumber][0];
         } else if(playerWinMoves.length > 0) { // If player can win in one move, block the player         
-          let randomNumber = Mathf.randomInt(0, playerWinMoves.length); // Get random player win combination index
+          let randomNumber = Mathf.randomInt(0, playerWinMoves.length);
           gameTable[playerWinMoves[randomNumber][0].Get1DIndexFrom2D(gameTableSide)] = botCellState;
-          return playerWinMoves[randomNumber][0]; // Do a move and return position
+          return playerWinMoves[randomNumber][0];
         } else { // Else just do a random move
-          let possibleMoves = XO.GetPossibleMoves(gameTable); // Get possible move positions
-          let randomNumber = Mathf.randomInt(0, possibleMoves.length); // Get random move position (1D)
-          gameTable[possibleMoves[randomNumber]] = botCellState; // Do a move and return position
+          let possibleMoves = XO.GetPossibleMoves(gameTable);
+          let randomNumber = Mathf.randomInt(0, possibleMoves.length);
+          gameTable[possibleMoves[randomNumber]] = botCellState;
           return Point.Get2DIndexFrom1D(possibleMoves[randomNumber], gameTableSize);
         }
-      case XO.BotDifficulty_Hard:
+      case XO.BotDifficulty.Hard:
         if(lastBotMove == Point.OneInverted) { // Do the first move, if not done yet
           let tableCenter = new Point(Math.floor((gameTableSide - 1) / 2), Math.floor((gameTableSide - 1) / 2));
           // Occupy the center if table size is even and if it is not occupied yet
-          if(gameTableSide % 2 != 0 && gameTable[tableCenter.Get1DIndexFrom2D(gameTableSide)] == XO.CellState_None) {
+          if(gameTableSide % 2 == 0 && gameTable[tableCenter.Get1DIndexFrom2D(gameTableSide)] == XO.CellState.None) {
             gameTable[tableCenter.Get1DIndexFrom2D(gameTableSide)] = botCellState;
             return tableCenter;
-          } else { // Else place move in the corners
+          } else { // Else occupy the corners
             let corner = new Point(Mathf.randomBool() ? 0 : gameTableSide - 1, Mathf.randomBool() ? 0 : gameTableSide - 1);
             gameTable[corner.Get1DIndexFrom2D(gameTableSide)] = botCellState;
             return corner;
@@ -192,30 +204,29 @@ class XO {
           let botGoodMoves = XO.GetPotentionalWinMoves(gameTable, -playerSign, gameTableSide, lastBotMove, gameTableSide - 1);
           let playerWinMoves = XO.GetPotentionalWinMoves(gameTable, playerSign, gameTableSide, lastPlayerMove, 1);
           if(botWinMoves.length > 0) { // If the bot can win in one move, do that move
-            let randomNumber = Mathf.randomInt(0, botWinMoves.length); // Get random bot win combination index
+            let randomNumber = Mathf.randomInt(0, botWinMoves.length);
             gameTable[botWinMoves[randomNumber][0].Get1DIndexFrom2D(gameTableSide)] = botCellState;
-            return botWinMoves[randomNumber][0]; // Do a move and return position
+            return botWinMoves[randomNumber][0];
           } else if(playerWinMoves.length > 0) { // If player can win in one move, block the player
-            let randomNumber = Mathf.randomInt(0, playerWinMoves.length); // Get random player win combination index
+            let randomNumber = Mathf.randomInt(0, playerWinMoves.length);
             gameTable[playerWinMoves[randomNumber][0].Get1DIndexFrom2D(gameTableSide)] = botCellState;
-            return playerWinMoves[randomNumber][0]; // Do a move and return position
+            return playerWinMoves[randomNumber][0];
           } else if(botGoodMoves.length > 0) { // If the bot have moves, that may lead to win, do the best move
             let currentBestMove = Point.OneInverted;
             let currentLowestCombinationLength = gameTableSide - 1;
             for(let i = 0; i < botGoodMoves.length; i++) {
-              // Check if the path is not longer than any of previous paths
               if(botGoodMoves[i].length > currentLowestCombinationLength) continue;
               else if(botGoodMoves[i].length < currentLowestCombinationLength) 
                 currentLowestCombinationLength = botGoodMoves[i].length;
-              for(let j = 0; j < botGoodMoves[i].length; j++) // Get the new best move (every time), because why not
+              for(let j = 0; j < botGoodMoves[i].length; j++)
                 currentBestMove = botGoodMoves[i][Mathf.randomInt(0, botGoodMoves[i].length)];
             }
             gameTable[currentBestMove.Get1DIndexFrom2D(gameTableSide)] = botCellState;
-            return currentBestMove; // Do a move and return position
+            return currentBestMove;
           } else { // Else just do a random move
-            let possibleMoves = XO.GetPossibleMoves(gameTable); // Get possible move positions
-            let randomNumber = Mathf.randomInt(0, possibleMoves.length); // Get random move position (1D)
-            gameTable[possibleMoves[randomNumber]] = botCellState; // Do a move and return position
+            let possibleMoves = XO.GetPossibleMoves(gameTable);
+            let randomNumber = Mathf.randomInt(0, possibleMoves.length);
+            gameTable[possibleMoves[randomNumber]] = botCellState;
             return Point.Get2DIndexFrom1D(possibleMoves[randomNumber], gameTableSize);
           }
         }
@@ -228,7 +239,7 @@ class XO {
    * @returns {Number[]} Empty cells in the `gameTable`.
    */
   static GetPossibleMoves(gameTable) {
-    return gameTable.findIndexes(num => num == XO.CellState_None);
+    return gameTable.findIndexes(num => num == XO.CellState.None);
   }
 
   /**
@@ -241,17 +252,16 @@ class XO {
    * @returns {[Point[]]} Move combinations to win the game as the player.
    */
   static GetPotentionalWinMoves(gameTable, playerSign, gameTableSide, lastMove, movesToWin) {
-    // Variables
-    let playerCellState = playerSign == XO.CurrentTurn_X ? XO.CellState_X : XO.CellState_O;
+    let playerCellState = playerSign == XO.CurrentTurn.X ? XO.CellState.X : XO.CellState.O;
     let gameTableSize = Size.GetSizeFromSide(gameTableSide);
     let winCombinations = [];
-    if(!lastMove.IsOutOfBounds(gameTableSize)) { // If the placement of last move is incorrect, don't do the useless work and just return empty array then
-      for(let i = 0; i < 4; i++) { // Shoot info rays in a half of directions
+    if(!lastMove.IsOutOfBounds(gameTableSize)) {
+      for(let i = 0; i < 4; i++) { // Shoot info rays in a half of directions (note: they bounce)
         let direction = i == 0 ? Point.DirectionLeft : i == 1 ? Point.DirectionUpLeft : i == 2 ? Point.DirectionUp : Point.DirectionUpRight;
-        let info = ArrayLogic.ShootInfoRay(lastMove, gameTableSide, direction, gameTable, gameTableSize, [playerCellState, XO.CellState_None], true, ArrayLogic.InfoRayReturn_Both);
+        let info = ArrayLogic.ShootInfoRay(lastMove, gameTableSide, direction, gameTable, gameTableSize, [playerCellState, XO.CellState.None], true, ArrayLogic.InfoRayReturn.Both);
         // Add point into movesToWin array if point is empty and meeting certain conditions
-        if(info[1][XO.CellState_None] <= movesToWin && info[0].length == gameTableSide)
-          winCombinations.push(info[0].filter(point => gameTable[point.Get1DIndexFrom2D(gameTableSide)] == XO.CellState_None));
+        if(info[1][XO.CellState.None] <= movesToWin && info[0].length == gameTableSide)
+          winCombinations.push(info[0].filter(point => gameTable[point.Get1DIndexFrom2D(gameTableSide)] == XO.CellState.None));
       }
     }
     return winCombinations;
@@ -268,34 +278,32 @@ class XO {
    * @param {Number} gameTableSide Size of a game table side.
    * @param {Number} gameState Current game state (Format - GameState).
    */
-  static UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide, gameState = XO.GameState_Playing) {
+  static UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide, gameState = XO.GameState.Playing) {
     let status = ``;
-    // Set status if needed
-    if(gameState != XO.GameState_Playing) {
+    if(gameState != XO.GameState.Playing) {
       switch(gameState) {
-        case playerSign == XO.CurrentTurn_X ? XO.GameState_XWon : XO.GameState_OWon:
+        case playerSign == XO.CurrentTurn.X ? XO.GameState.XWon : XO.GameState.OWon:
           status = `\nGame Ended! <@!${player.user.id}> won!\n`
           break;
-        case playerSign == XO.CurrentTurn_X ? XO.GameState_OWon : XO.GameState_XWon:
-          status = `\nGame Ended! Bot (${difficulty == XO.BotDifficulty_Easy ? 'Easy' : difficulty == XO.BotDifficulty_Normal ? 'Normal' : 'Hard'}) won!\n`
+        case playerSign == XO.CurrentTurn.X ? XO.GameState.OWon : XO.GameState.XWon:
+          status = `\nGame Ended! Bot (${difficulty == XO.BotDifficulty.Easy ? 'Easy' : difficulty == XO.BotDifficulty.Normal ? 'Normal' : 'Hard'}) won!\n`
           break;
-        case XO.GameState_Draw:
+        case XO.GameState.Draw:
           status = '\nGame Ended! Draw :/\n';
           break;
       }
     }
-    // Edit embed
     message.edit(new Discord.MessageEmbed()
       .setColor('#0099ff') 
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)   
-      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty_Easy ? 'Easy' : difficulty == XO.BotDifficulty_Normal ? 'Normal' : 'Hard'})**\n${status}
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
+      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty.Easy ? 'Easy' : difficulty == XO.BotDifficulty.Normal ? 'Normal' : 'Hard'})**\n${status}
+      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(message.guild.name, message.guild.iconURL()));
   }
 
   /**
-   * Starts new Human VS Human XO Game.
+   * Starts a new Human VS Human XO Game.
    * @param {Discord.GuildMember} playerX Player who plays as X.
    * @param {Discord.GuildMember} playerO Player who plays as O.
    * @param {Discord.TextChannel} channel Text Channel, where the game will be.
@@ -303,74 +311,71 @@ class XO {
    * @param {Number} gameTableSide Size of a game table side.
    */
   static HumanVSHuman(playerX, playerO, requestedPlayer, channel, gameTableSide) {
-    // Variables
-    let currentTurn = XO.CurrentTurn_X;
-    gameTableSide = Mathf.clamp(gameTableSide, 3, 7); // Clamp side size to minimum and maximum values
-    let gameTable = ArrayLogic.CreateArray(Size.GetSizeFromSide(gameTableSide), XO.CellState_None);
+    let currentTurn = XO.CurrentTurn.X;
+    gameTableSide = Mathf.clamp(gameTableSide, 3, 7);
+    let gameTable = ArrayLogic.CreateArray(Size.GetSizeFromSide(gameTableSide), XO.CellState.None);
     let cursor = new Point(Math.floor((gameTableSide - 1) / 2), Math.floor((gameTableSide - 1) / 2));
-    // Pushing players into in-game players list
     if(!XO.InGame.includes(playerX.user.id)) XO.InGame.push(playerX.user.id);
     if(!XO.InGame.includes(playerO.user.id)) XO.InGame.push(playerO.user.id);
-    // Send game message
+    // Send a game message
     channel.send(new Discord.MessageEmbed()
       .setColor('#0099ff') 
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)     
       .setDescription(`**<@!${playerX.user.id}> VS <@!${playerO.user.id}>**\n\n<@!${playerX.user.id}>'s turn!\n
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
+      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(channel.guild.name, channel.guild.iconURL()))
-    .then(message => { // Game!
-      // Sending game link to Player 2
+    .then(message => {
       requestedPlayer.user.send('Game (message) link: ' + message.url);
-      // Adding Reactions (Controls)
+      //#region Add reactions
       message.react('⬅️');
       message.react('➡️');
       message.react('⬆️');
       message.react('⬇️');
       message.react('✅');
       message.react('🛑');
-      // Adding Reaction Collector
+      //#endregion
+
+      //#region Reaction events
       const filter = (reaction, user) => user.id === playerX.user.id || user.id === playerO.user.id;
       const collector = message.createReactionCollector(filter, { dispose: true });
       collector.on('collect', (reaction, user) => {
-        // Is it turn of user who reacts? Or not?
-        const isCorrectUserReacting = (currentTurn == XO.CurrentTurn_X && user.id === playerX.user.id) || (currentTurn == XO.CurrentTurn_O && user.id === playerO.user.id);
+        const isCorrectUserReacting = (currentTurn == XO.CurrentTurn.X && user.id === playerX.user.id) || (currentTurn == XO.CurrentTurn.O && user.id === playerO.user.id);
         switch(reaction.emoji.name) {
           // Controls (Arrows)
           case '⬅️':
             if(cursor.X > 0 && isCorrectUserReacting) {       
-              cursor.X -= 1; // Moving cursor & updating message then
+              cursor.X -= 1;
               XO.UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, cursor, currentTurn, gameTableSide); 
             }
             break;
           case '➡️':
             if(cursor.X < gameTableSide - 1 && isCorrectUserReacting) {             
-              cursor.X += 1; // Moving cursor & updating message then
+              cursor.X += 1;
               XO.UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, cursor, currentTurn, gameTableSide);
             }
             break;
           case '⬆️':
             if(cursor.Y > 0 && isCorrectUserReacting) {             
-              cursor.Y -= 1; // Moving cursor & updating message then
+              cursor.Y -= 1;
               XO.UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, cursor, currentTurn, gameTableSide);
             }
             break;
           case '⬇️':
             if(cursor.Y < gameTableSide - 1 && isCorrectUserReacting) {             
-              cursor.Y += 1; // Moving cursor & updating message then
+              cursor.Y += 1;
               XO.UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, cursor, currentTurn, gameTableSide);
             }
             break;
           // Controls (Place Tile)
           case '✅':           
-            if(isCorrectUserReacting && gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] == XO.CellState_None) {        
-              gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] = currentTurn == XO.CurrentTurn_X ? XO.CellState_X : XO.CellState_O;
-              if(XO.CheckGameState(gameTable, cursor, gameTableSide) == XO.GameState_Playing) currentTurn *= -1; // :)
+            if(isCorrectUserReacting && gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] == XO.CellState.None) {        
+              gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] = currentTurn == XO.CurrentTurn.X ? XO.CellState.X : XO.CellState.O;
+              if(XO.CheckGameState(gameTable, cursor, gameTableSide) == XO.GameState.Playing) currentTurn = currentTurn == XO.CurrentTurn.X ? XO.CurrentTurn.O : XO.CurrentTurn.X;
               else {
                 message.reactions.removeAll();     
                 // Updating message including game state
-                XO.UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, Point.OneInverted, currentTurn, gameTableSide, 
-                  XO.CheckGameState(gameTable, cursor, gameTableSide));            
+                XO.UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, Point.OneInverted, currentTurn, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));            
                 XO.InGame.splice(XO.InGame.indexOf(playerX.user.id));
                 XO.InGame.splice(XO.InGame.indexOf(playerO.user.id));
                 break;
@@ -387,9 +392,11 @@ class XO {
             break;
         }
       });
+      //#endregion
+
       collector.on('remove', (reaction, user) => {
         collector.handleCollect(reaction, user);
-      }); // Make 'remove' event do the same thing 'collect' event does
+      });
     });
   }
 
@@ -404,29 +411,26 @@ class XO {
   * @param {Number} gameTableSide Size of a game table side.
   * @param {Number} gameState Current game state (Format - GameState).
   */
-  static UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, cursor, currentTurn, gameTableSide, gameState = XO.GameState_Playing) {
-    // Get game status and char dictionaries for embed
-    let status = `<@!${currentTurn == XO.CurrentTurn_X ? playerX.user.id : playerO.user.id}>'s turn!`;
-    // Set Turn Status to Win Status if needed
-    if(gameState != XO.GameState_Playing) {
+  static UpdateEmbed_HumanVSHuman(message, playerX, playerO, gameTable, cursor, currentTurn, gameTableSide, gameState = XO.GameState.Playing) {
+    let status = `<@!${currentTurn == XO.CurrentTurn.X ? playerX.user.id : playerO.user.id}>'s turn!`;
+    if(gameState != XO.GameState.Playing) {
       switch(gameState) {
-        case XO.GameState_XWon:
+        case XO.GameState.XWon:
           status = `Game Ended! <@!${playerX.user.id}> won!`
           break;
-        case XO.GameState_OWon:
+        case XO.GameState.OWon:
           status = `Game Ended! <@!${playerO.user.id}> won!`
           break;
-        case XO.GameState_Draw:
+        case XO.GameState.Draw:
           status = 'Game Ended! Draw :/';
           break;
       }
     }
-    // Edit embed
     message.edit(new Discord.MessageEmbed()
       .setColor('#0099ff') 
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)
       .setDescription(`**<@!${playerX.user.id}> VS <@!${playerO.user.id}>**\n\n${status}\n
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
+      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(message.guild.name, message.guild.iconURL()));
   }
@@ -440,26 +444,25 @@ class XO {
   */
   static CheckGameState(gameTable, lastMove, gameTableSide) {
     let gameTableSize = Size.GetSizeFromSide(gameTableSide);
-    // Check if every cell is filled
     let gameTableFilled = true;
     let moveSign = gameTable[lastMove.Get1DIndexFrom2D(gameTableSide)];
     for(let i = 0; i < gameTable.length; i++) if(gameTable[i] == 0) gameTableFilled = false;
-    // Check if there is any win combination (Shoot 4 rays)
+    // Check if there are any win combinations
     if(ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpLeft, gameTable, gameTableSize, [moveSign], gameTableSide)
     || ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUp, gameTable, gameTableSize, [moveSign], gameTableSide)
     || ArrayLogic.ShootCheckerRay2(lastMove, Point.DirectionUpRight, gameTable, gameTableSize, [moveSign], gameTableSide)) {
+      // Update the database GAMESPLAYED and LASTGAME values
       database.query(`UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1; UPDATE statistics SET xo_lastgame = ${new Date().getTime() };`);
-      return moveSign == XO.CellState_X ? XO.GameState_XWon : XO.GameState_OWon; // If there is/are a win combination(s), some player won
+      return moveSign == XO.CellState.X ? XO.GameState.XWon : XO.GameState.OWon;
     }
-    else if(gameTableFilled) { // If there are no win combinations, but the game table is filled, it is a draw
+    else if(gameTableFilled) {
+      // Update the database GAMESPLAYED and LASTGAME values
       database.query(`UPDATE statistics SET xo_gamesplayed = xo_gamesplayed + 1; UPDATE statistics SET xo_lastgame = ${new Date().getTime() };`);
-      return XO.GameState_Draw;
+      return XO.GameState.Draw;
     }
-    else return XO.GameState_Playing;
+    else return XO.GameState.Playing;
   }
 
   //#endregion
 }
-
-module.exports = XO;

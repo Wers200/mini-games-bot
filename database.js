@@ -1,9 +1,7 @@
 // Make .env work
 require('dotenv').config()
 
-// Variables
 const { Client } = require('pg');
-/**@type { Client } client */
 let client;
 
 // Initialize client
@@ -23,8 +21,6 @@ if(process.env.ENVIRONMENT == "local") {
     });
 }
 
-// Connect to DB
 client.connect();
 
-// Add DB functions
 module.exports = client;
