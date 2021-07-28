@@ -367,24 +367,6 @@ client.on('ready', function() {
   }
 });
 
-client.on('message', message => {
-  if(message.author.bot) return;
-
-  if(message.content.startsWith('/eval ') && message.author.id == '670559252456407070') {
-    let code = message.content.substring(6); // Remove '/eval ' (6 characters) from the message content and get code
-    try {
-      message.channel.send(new Discord.MessageEmbed()
-        .setColor('#32ff19')
-        .addField('Return', '```js\n' + eval(code) + '\n```'));
-    }
-    catch(exc) {
-      message.channel.send(new Discord.MessageEmbed()
-        .setColor('#ff3219')
-        .addField('Error', '```js\n' + exc + '\n```'));
-    }
-  }
-});
-
 // Add slash commands on the new server
 client.on('guildCreate', guild => {
   // Add tic-tac-toe slash command
