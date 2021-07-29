@@ -57,8 +57,8 @@ class XO {
     channel.send(new Discord.MessageEmbed()
       .setColor('#0099ff')
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)
-      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty_Easy ? 'Easy' : difficulty == XO.BotDifficulty_Normal ? 'Normal' : 'Hard'})**\n
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
+      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty_Easy ? 'Easy' : difficulty == XO.BotDifficulty_Normal ? 'Normal' : 'Hard'})**\n\n` +
+      `${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(channel.guild.name, channel.guild.iconURL()))
     .then(message => {
@@ -315,8 +315,8 @@ class XO {
     channel.send(new Discord.MessageEmbed()
       .setColor('#0099ff') 
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)     
-      .setDescription(`**<@!${playerX.user.id}> VS <@!${playerO.user.id}>**\n\n<@!${playerX.user.id}>'s turn!\n
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
+      .setDescription(`**<@!${playerX.user.id}> VS <@!${playerO.user.id}>**\n\n<@!${playerX.user.id}>'s turn!\n\n` +
+      `${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellState_CharDictionary, XO.CellState_OverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(channel.guild.name, channel.guild.iconURL()))
     .then(message => { // Game!
