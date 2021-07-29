@@ -296,8 +296,8 @@ module.exports = class XO {
     message.edit(new Discord.MessageEmbed()
       .setColor('#0099ff') 
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)   
-      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty.Easy ? 'Easy' : difficulty == XO.BotDifficulty.Normal ? 'Normal' : 'Hard'})**\n${status}
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
+      .setDescription(`**<@!${player.user.id}> VS Bot (${difficulty == XO.BotDifficulty.Easy ? 'Easy' : difficulty == XO.BotDifficulty.Normal ? 'Normal' : 'Hard'})**\n${status}` +
+      `${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(message.guild.name, message.guild.iconURL()));
   }
@@ -429,8 +429,8 @@ module.exports = class XO {
     message.edit(new Discord.MessageEmbed()
       .setColor('#0099ff') 
       .setTitle(`Tic-Tac-Toe${gameTableSide == 3 ? '!' : '?'}`)
-      .setDescription(`**<@!${playerX.user.id}> VS <@!${playerO.user.id}>**\n\n${status}\n
-      ${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
+      .setDescription(`**<@!${playerX.user.id}> VS <@!${playerO.user.id}>**\n\n${status}\n` +
+      `${ArrayLogic.Stringify(gameTable, [cursor.Get1DIndexFrom2D(gameTableSide)], gameTableSide, XO.CellStateCharDictionary, XO.CellStateOverlayCharDictionary, true)}`)
       .setTimestamp()
       .setFooter(message.guild.name, message.guild.iconURL()));
   }
