@@ -117,18 +117,20 @@ module.exports = class XO {
           case '✅':           
             if(gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] == XO.CellState.None) {                     
               gameTable[cursor.Get1DIndexFrom2D(gameTableSide)] = playerSign == XO.CurrentTurn.X ? XO.CellState.X : XO.CellState.O;
-              if(XO.CheckGameState(gameTable, cursor, gameTableSide) != XO.GameState.Playing) {
+              let gameState = XO.CheckGameState(gameTable, cursor, gameTableSide);
+              if(gameState != XO.GameState.Playing) {
                 message.reactions.removeAll();
-                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));
+                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, gameState);
                 XO.InGame.splice(XO.InGame.indexOf(player.user.id));
               } else {
-                lastBotMove = XO.MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, cursor, lastBotMove);        
-                if(XO.CheckGameState(gameTable, cursor, gameTableSide) != XO.GameState.Playing) {
+                lastBotMove = XO.MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, cursor, lastBotMove);
+                gameState = XO.CheckGameState(gameTable, lastBotMove, gameTableSide);
+                if(gameState != XO.GameState.Playing) {
                   message.reactions.removeAll();
                   XO.InGame.splice(XO.InGame.indexOf(player.user.id));
-                  XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));
+                  XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, Point.OneInverted, gameTableSide, gameState);
                 }
-                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide, XO.CheckGameState(gameTable, cursor, gameTableSide));          
+                XO.UpdateEmbed_HumanVSBot(message, player, playerSign, difficulty, gameTable, cursor, gameTableSide, gameState);          
               }
             }
             break;
@@ -160,6 +162,7 @@ module.exports = class XO {
    */
   static MakeABotMove(difficulty, gameTable, playerSign, gameTableSide, lastPlayerMove, lastBotMove) {
     let botCellState = playerSign == XO.CurrentTurn.X ? XO.CellState.O : XO.CellState.X;
+    let botSign = playerSign == XO.CurrentTurn.X ? XO.CurrentTurn.O : XO.CurrentTurn.X;
     let gameTableSize = Size.GetSizeFromSide(gameTableSide);
     switch(difficulty) {
       case XO.BotDifficulty.Easy: 
@@ -170,7 +173,7 @@ module.exports = class XO {
         return Point.Get2DIndexFrom1D(possibleMoves[randomNumber], gameTableSize);
       case XO.BotDifficulty.Normal:
         // Get one-move win moves for the bot and human player
-        let botWinMoves = XO.GetPotentionalWinMoves(gameTable, -playerSign, gameTableSide, lastBotMove, 1);
+        let botWinMoves = XO.GetPotentionalWinMoves(gameTable, botSign, gameTableSide, lastBotMove, 1);
         let playerWinMoves = XO.GetPotentionalWinMoves(gameTable, playerSign, gameTableSide, lastPlayerMove, 1);
         if(botWinMoves.length > 0) { // If the bot can win in one move, do that move
           let randomNumber = Mathf.randomInt(0, botWinMoves.length);
@@ -200,8 +203,8 @@ module.exports = class XO {
           }
         } else {
           // Get prefferable moves for bot (that may lead to win), one-move wins for bot and one-move wins for player
-          let botWinMoves = XO.GetPotentionalWinMoves(gameTable, -playerSign, gameTableSide, lastBotMove, 1);
-          let botGoodMoves = XO.GetPotentionalWinMoves(gameTable, -playerSign, gameTableSide, lastBotMove, gameTableSide - 1);
+          let botWinMoves = XO.GetPotentionalWinMoves(gameTable, botSign, gameTableSide, lastBotMove, 1);
+          let botGoodMoves = XO.GetPotentionalWinMoves(gameTable, botSign, gameTableSide, lastBotMove, gameTableSide - 1);
           let playerWinMoves = XO.GetPotentionalWinMoves(gameTable, playerSign, gameTableSide, lastPlayerMove, 1);
           if(botWinMoves.length > 0) { // If the bot can win in one move, do that move
             let randomNumber = Mathf.randomInt(0, botWinMoves.length);

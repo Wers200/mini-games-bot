@@ -226,9 +226,9 @@ class ArrayLogic {
         }
         else if(bounce) return this.ShootInfoRay(position, lifetime, new Point(-move.X , -move.Y), 
           array, arraySize, requiredNumbers, false, returnType); // Make ray bounce (spawn it with inverted direction)
-        else return returnType == this.InfoRayReturn.Points ? path : returnType == this.InfoRayReturn.Values ? numberInfo : [path, numberInfo];
       }
-    } else return undefined;
+    }
+    return returnType == this.InfoRayReturn.Points ? path : returnType == this.InfoRayReturn.Values ? numberInfo : [path, numberInfo];
   }
 }
 
