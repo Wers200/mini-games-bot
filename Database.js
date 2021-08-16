@@ -11,8 +11,7 @@ if(process.env.ENVIRONMENT == "local") {
         port: process.env.DB_PORT,
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
-        database: process.env.DB_DATABASE,
-        ssl: true
+        database: process.env.DB_DATABASE
     });
 } else if(process.env.ENVIRONMENT == "heroku") {
     client = new Client({

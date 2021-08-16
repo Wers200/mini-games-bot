@@ -2,13 +2,13 @@
   "name": "mini-games-bot",
   "version": "1.0.0",
   "description": "Mini-Games Discord bot.",
-  "main": "index.js",
+  "main": "Main.js",
   "engines": {
     "node": "14.16.1",
     "npm": "7.12.1"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node Main.js"
   },
   "repository": {
     "type": "git",
