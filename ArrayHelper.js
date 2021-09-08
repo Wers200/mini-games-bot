@@ -211,8 +211,8 @@ class ArrayLogic {
     let numberOnStartPosition = array[position.Get1DIndexFrom2D(arraySize.Width)];
     // Check if start position is meeting needed conditions
     if(requiredNumbers.includes(numberOnStartPosition) && !position.IsOutOfBounds(arraySize)) {
-      if(returnType != this.InfoRayReturn_ValuesInfo) path.push(position); // Add start position to the path
-      if(returnType != this.InfoRayReturn_Points) numberInfo[numberOnStartPosition]++; // Add start position's number to the numberInfo
+      if(returnType != this.InfoRayReturn.Values) path.push(position); // Add start position to the path
+      if(returnType != this.InfoRayReturn.Points) numberInfo[numberOnStartPosition]++; // Add start position's number to the numberInfo
       for(let i = 0; i <= lifetime; i++) { 
         // Make conditions for moving & some variables
         const nextPosition = new Point(position.X + move.X, position.Y + move.Y);
@@ -220,8 +220,8 @@ class ArrayLogic {
         const isRequiredNumberOnNextPosition = requiredNumbers.includes(numberOnNextPosition);
         const moveConditions = !nextPosition.IsOutOfBounds(arraySize) && isRequiredNumberOnNextPosition;
         if(moveConditions) { // If the next position is meeting needed conditions, move the ray
-          if(returnType != this.InfoRayReturn_ValuesInfo) path.push(nextPosition); // Add position to the path
-          if(returnType != this.InfoRayReturn_Points) numberInfo[numberOnNextPosition]++;
+          if(returnType != this.InfoRayReturn.Values) path.push(nextPosition); // Add position to the path
+          if(returnType != this.InfoRayReturn.Points) numberInfo[numberOnNextPosition]++;
           position = nextPosition; // Move ray if next position is not out of bounds
         }
         else if(bounce) return this.ShootInfoRay(position, lifetime, new Point(-move.X , -move.Y), 
