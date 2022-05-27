@@ -8,7 +8,7 @@ let client;
 
 // Initialize client
 if(process.env.ENVIRONMENT == "local") {
-    client = new Client({
+	client = new Client({
         host: process.env.DB_HOST,
         port: process.env.DB_PORT,
         user: process.env.DB_USER,
